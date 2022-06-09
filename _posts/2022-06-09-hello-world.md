@@ -1,6 +1,7 @@
 ---
 layout: post
 title:  "Hello world. Ewwww"
+permalink: /hello-world/
 ---
 
 # Hello world. Ewwww
