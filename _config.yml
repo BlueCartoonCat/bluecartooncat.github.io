@@ -1,3 +1,6 @@
 theme: minima
+title: That annoying guy's blog
+author:
+  name: BlueCartoonCat
 github:
   is_project_page: false
