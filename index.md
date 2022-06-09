@@ -1,4 +1,6 @@
-## That annoying guy's blog
+---
+title: That annoying guy's blog
+---
 
 <ul>
   {% for post in site.posts %}
