@@ -1,0 +1,1672 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RMAN Browser</title>
+  <script src="./rman.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --panel-2: #eef3f7;
+      --control: #ffffff;
+      --table-head: #f9fbfd;
+      --surface-soft: #fbfcfd;
+      --text: #17202a;
+      --muted: #667789;
+      --line: #d8e0e8;
+      --accent: #0b6bcb;
+      --accent-2: #0f8a6a;
+      --warn: #b26b00;
+      --bad: #b42318;
+      --mark: #fff4c7;
+      --cache: #edf1f5;
+      --danger-bg: #fff7f6;
+      --danger-line: #f2c6c1;
+      --selected-outline: rgba(11, 107, 203, 0.22);
+      --brand-bg: #1b2633;
+      --brand-text: #ffffff;
+      --active-bg: #e6f1ff;
+      --active-text: #063f7c;
+      --log-bg: #101820;
+      --log-text: #d9e7f5;
+      --shadow: 0 10px 30px rgba(26, 39, 56, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #11161c;
+      --panel: #18212b;
+      --panel-2: #202c38;
+      --control: #121a22;
+      --table-head: #1d2834;
+      --surface-soft: #151e27;
+      --text: #e8eef5;
+      --muted: #a3b2c2;
+      --line: #314153;
+      --accent: #58a6ff;
+      --accent-2: #31c48d;
+      --warn: #e5a647;
+      --bad: #ff8f86;
+      --mark: #3c3214;
+      --cache: #22303d;
+      --danger-bg: #341d20;
+      --danger-line: #69363c;
+      --selected-outline: rgba(88, 166, 255, 0.32);
+      --brand-bg: #d8e8ff;
+      --brand-text: #102033;
+      --active-bg: #153452;
+      --active-text: #d9ecff;
+      --log-bg: #090d12;
+      --log-text: #d9e7f5;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--control);
+      color: var(--text);
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.danger {
+      border-color: var(--danger-line);
+      color: var(--bad);
+      background: var(--danger-bg);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    input, select, textarea {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--control);
+      color: var(--text);
+      min-height: 34px;
+      padding: 7px 9px;
+      width: 100%;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-right: 6px;
+      font-weight: 700;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .toolbar-spacer {
+      flex: 1 1 auto;
+      min-width: 8px;
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .theme-toggle {
+      width: 36px;
+      min-width: 36px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+    }
+
+    .icon-button {
+      width: 36px;
+      min-width: 36px;
+      min-height: 34px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--control);
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .theme-toggle svg,
+    .icon-button svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 6px;
+      background: var(--brand-bg);
+      color: var(--brand-text);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(190px, 0.85fr) minmax(520px, 2.9fr) minmax(280px, 1.2fr);
+      gap: 12px;
+      padding: 12px;
+      min-height: 0;
+    }
+
+    .panel {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-head {
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 48px;
+    }
+
+    .panel-title {
+      font-weight: 700;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .project-search {
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .project-list {
+      overflow: auto;
+      padding: 6px;
+    }
+
+    .project-item {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      border-radius: 6px;
+      padding: 8px 9px;
+      min-height: 34px;
+    }
+
+    .project-item:hover {
+      background: var(--panel-2);
+    }
+
+    .project-item.active {
+      background: var(--active-bg);
+      color: var(--active-text);
+      font-weight: 700;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1.1fr 0.7fr 0.8fr 1fr 1fr 1fr auto;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      min-height: 320px;
+      flex: 1;
+    }
+
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 9px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--table-head);
+      color: #3c4b5c;
+      font-size: 12px;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    tr.marked td {
+      background: var(--mark);
+    }
+
+    tr.cached td {
+      background: var(--cache);
+    }
+
+    tr.marked.cached td {
+      background: #f6edc1;
+    }
+
+    tr.selected td {
+      outline: 2px solid var(--selected-outline);
+      outline-offset: -2px;
+    }
+
+    .checkbox-cell {
+      width: 62px;
+      text-align: center;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid var(--line);
+      background: var(--surface-soft);
+      flex-wrap: wrap;
+    }
+
+    .pager select {
+      width: 92px;
+    }
+
+    .pager input {
+      width: 82px;
+    }
+
+    .log {
+      height: 172px;
+      overflow: auto;
+      margin: 0;
+      padding: 10px;
+      background: var(--log-bg);
+      color: var(--log-text);
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+
+    .side-section {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+      background: var(--surface-soft);
+      min-width: 0;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 16px;
+      margin-top: 3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .choice-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 6px;
+      max-height: 210px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      background: var(--surface-soft);
+    }
+
+    .choice-grid label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .choice-grid input {
+      width: auto;
+      min-height: auto;
+    }
+
+    .download-options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .statusbar {
+      min-height: 30px;
+      padding: 7px 12px;
+      border-top: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    dialog {
+      width: min(760px, calc(100vw - 28px));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0;
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: 0 24px 80px rgba(23, 32, 42, 0.26);
+    }
+
+    dialog::backdrop {
+      background: rgba(11, 24, 38, 0.38);
+    }
+
+    .dialog-body {
+      padding: 14px;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .inline-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .file-list {
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface-soft);
+      padding: 8px;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .settings-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        min-height: 260px;
+      }
+
+      .filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toolbar-right {
+        margin-left: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="toolbar">
+      <div class="brand"><span class="brand-mark">RM</span><span>RMAN Browser</span></div>
+      <button id="updateCatalog" class="primary">Update Catalog</button>
+      <button id="loadLocalCatalog">Load Local Catalog</button>
+      <button id="selectAll">Select All</button>
+      <button id="clearSelections">Clear</button>
+      <button id="downloadManifests">Download Manifest(s)</button>
+      <button id="downloadData" class="primary">Download Data</button>
+      <button id="abortCurrent" class="danger">Abort Current</button>
+      <button id="abortAll" class="danger">Abort All</button>
+      <span class="toolbar-spacer"></span>
+      <div class="toolbar-right">
+        <button id="themeToggle" class="theme-toggle" title="Switch theme" aria-label="Switch theme"></button>
+        <button id="credits">Credits</button>
+        <button id="settings">Settings</button>
+        <a class="icon-button" href="https://github.com/BlueCartoonCat/rman-web" target="_blank" rel="noreferrer" title="https://github.com/BlueCartoonCat/rman-web" aria-label="Open GitHub repository">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 8.36 22.9c.58.1.79-.25.79-.56v-2.02c-3.22.7-3.9-1.38-3.9-1.38-.53-1.35-1.29-1.71-1.29-1.71-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.57-.29-5.27-1.29-5.27-5.73 0-1.27.45-2.3 1.2-3.11-.12-.3-.52-1.49.11-3.07 0 0 .98-.31 3.2 1.19A11.1 11.1 0 0 1 12 6.01c.99 0 1.98.13 2.91.4 2.22-1.5 3.2-1.19 3.2-1.19.63 1.58.23 2.77.11 3.07.75.81 1.2 1.84 1.2 3.11 0 4.45-2.71 5.43-5.29 5.72.42.36.79 1.07.79 2.16v3.06c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"></path></svg>
+        </a>
+      </div>
+      <input id="catalogFile" type="file" accept=".json,application/json" hidden>
+      <input id="settingsFile" type="file" accept=".json,application/json" hidden>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Projects</div>
+            <div id="projectCount" class="subtle">No catalog loaded</div>
+          </div>
+        </div>
+        <div class="project-search">
+          <input id="projectSearch" placeholder="Filter projects">
+        </div>
+        <div id="projectList" class="project-list"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Entries</div>
+            <div id="entryCount" class="subtle">Choose a project</div>
+          </div>
+        </div>
+        <div class="filters">
+          <div class="field"><label>Version</label><input id="filterVersion" placeholder="starts with"></div>
+          <div class="field"><label>Year</label><input id="filterYear" placeholder="2024"></div>
+          <div class="field"><label>Size</label><input id="filterSize" placeholder="&gt; 2 GB"></div>
+          <div class="field"><label>Platform(s)</label><input id="filterPlatform" placeholder="windows,mac"></div>
+          <div class="field"><label>Realms</label><input id="filterRealms" placeholder="na,eu"></div>
+          <div class="field"><label>Artifact</label><input id="filterArtifact" placeholder="game"></div>
+          <button id="clearFilters">Reset</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th data-col="Download">Download</th>
+                <th data-col="ManifestID">Manifest ID</th>
+                <th data-col="Version">Version</th>
+                <th data-col="Timestamp">Timestamp</th>
+                <th data-col="Size">Size</th>
+                <th data-col="Platform">Platform</th>
+                <th data-col="Realms">Realms</th>
+                <th data-col="ArtifactType">Artifact</th>
+              </tr>
+            </thead>
+            <tbody id="entryBody"></tbody>
+          </table>
+        </div>
+        <div class="pager">
+          <span class="subtle">Page size</span>
+          <select id="pageSize">
+            <option>100</option>
+            <option>500</option>
+            <option>1000</option>
+            <option>All</option>
+          </select>
+          <button id="prevPage">Prev</button>
+          <button id="nextPage">Next</button>
+          <input id="pageInput" value="0/0">
+          <span id="selectionCount" class="subtle">0 selected</span>
+        </div>
+        <pre id="log" class="log"></pre>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Project Tools</div>
+            <div id="selectedProjectLabel" class="subtle">No project selected</div>
+          </div>
+        </div>
+        <div class="side-section">
+          <div class="stats">
+            <div class="stat"><span class="subtle">Manifests</span><b id="cacheManifestCount">0</b></div>
+            <div class="stat"><span class="subtle">Cache</span><b id="cacheSize">0 B</b></div>
+            <div class="stat"><span class="subtle">Bundles</span><b id="bundleCache">-</b></div>
+          </div>
+          <div class="inline-actions" style="margin-top:10px">
+            <button id="refreshCache">Refresh Cache</button>
+            <button id="clearCache">Clear Cache</button>
+          </div>
+        </div>
+        <div class="side-section download-options">
+          <div class="field"><label>Languages / Tags</label><div id="languageChoices" class="choice-grid"></div></div>
+          <div class="field"><label>File path regex</label><input id="fileFilter" placeholder="leave blank for all files"></div>
+          <div class="inline-actions">
+            <button id="estimateSize">Estimate Size</button>
+            <button id="previewFiles">Preview Files</button>
+          </div>
+          <div id="estimateOutput" class="subtle">Select entries, then estimate or download.</div>
+        </div>
+        <div class="side-section" style="flex:1">
+          <div class="field"><label>Notes</label><textarea id="notes" placeholder="Project notes are saved in this browser."></textarea></div>
+        </div>
+      </aside>
+    </main>
+
+    <footer id="status" class="statusbar">Ready</footer>
+  </div>
+
+  <dialog id="modal">
+    <div class="panel-head"><div id="modalTitle" class="panel-title">Dialog</div></div>
+    <div id="modalBody" class="dialog-body"></div>
+    <div class="dialog-actions">
+      <button id="modalCancel">Close</button>
+      <button id="modalConfirm" class="primary">OK</button>
+    </div>
+  </dialog>
+
+  <script>
+    "use strict";
+
+    var CATALOG_URL = "https://raw.githubusercontent.com/RiotArchiveProject/catalog-download-script/refs/heads/main/catalog.json";
+    var PREF_KEY = "rman-browser-prefs-v1";
+    var DB_NAME = "rman-browser-cache";
+    var DB_VERSION = 1;
+
+    var state = {
+      catalog: {},
+      prefs: loadPrefs(),
+      selectedProject: null,
+      filteredEntries: [],
+      currentPage: 1,
+      totalPages: 1,
+      marked: {},
+      selectedRows: new Set(),
+      sort: { col: "Timestamp", reverse: true },
+      manifests: new Map(),
+      manifestMeta: new Map(),
+      currentController: null,
+      abortAll: false,
+      running: false,
+    };
+
+    var el = {};
+
+    document.addEventListener("DOMContentLoaded", init);
+
+    function init() {
+      cacheElements();
+      wireEvents();
+      restorePrefsToUi();
+      loadCatalogFromStorage();
+      refreshCacheInfo();
+      log("Ready.");
+    }
+
+    function cacheElements() {
+      [
+        "updateCatalog", "loadLocalCatalog", "catalogFile", "settings", "settingsFile",
+        "credits", "selectAll", "clearSelections", "downloadManifests", "downloadData", "abortCurrent", "abortAll", "themeToggle", "projectCount",
+        "projectSearch", "projectList", "entryCount", "filterVersion", "filterYear", "filterSize",
+        "filterPlatform", "filterRealms", "filterArtifact", "clearFilters", "entryBody", "pageSize",
+        "prevPage", "nextPage", "pageInput", "selectionCount", "log", "selectedProjectLabel",
+        "cacheManifestCount", "cacheSize", "bundleCache", "refreshCache", "clearCache", "languageChoices",
+        "fileFilter", "estimateSize", "previewFiles", "estimateOutput", "notes", "status", "modal",
+        "modalTitle", "modalBody", "modalCancel", "modalConfirm",
+      ].forEach(function get(id) {
+        el[id] = document.getElementById(id);
+      });
+    }
+
+    function wireEvents() {
+      el.updateCatalog.addEventListener("click", updateCatalog);
+      el.loadLocalCatalog.addEventListener("click", function () { el.catalogFile.click(); });
+      el.catalogFile.addEventListener("change", loadLocalCatalog);
+      el.settings.addEventListener("click", showSettings);
+      el.settingsFile.addEventListener("change", importSettings);
+      el.credits.addEventListener("click", showCredits);
+      el.themeToggle.addEventListener("click", toggleTheme);
+      el.projectSearch.addEventListener("input", renderProjects);
+      el.selectAll.addEventListener("click", selectAllFiltered);
+      el.clearSelections.addEventListener("click", clearSelections);
+      el.downloadManifests.addEventListener("click", downloadSelectedManifests);
+      el.downloadData.addEventListener("click", downloadData);
+      el.abortCurrent.addEventListener("click", abortCurrent);
+      el.abortAll.addEventListener("click", abortAll);
+      el.refreshCache.addEventListener("click", refreshCacheInfo);
+      el.clearCache.addEventListener("click", clearProjectCache);
+      el.estimateSize.addEventListener("click", estimateSelectedSize);
+      el.previewFiles.addEventListener("click", previewSelectedFiles);
+      el.clearFilters.addEventListener("click", clearFilters);
+      el.prevPage.addEventListener("click", prevPage);
+      el.nextPage.addEventListener("click", nextPage);
+      el.pageInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") gotoPage();
+      });
+      el.pageSize.addEventListener("change", function () {
+        state.currentPage = 1;
+        saveProjectPrefs();
+        populatePage();
+      });
+      el.notes.addEventListener("input", debounce(saveProjectNotes, 350));
+
+      ["filterVersion", "filterYear", "filterSize", "filterPlatform", "filterRealms", "filterArtifact"].forEach(function (id) {
+        el[id].addEventListener("input", debounce(applyFilter, 180));
+      });
+
+      document.querySelectorAll("th[data-col]").forEach(function (th) {
+        th.addEventListener("click", function () { sortBy(th.dataset.col); });
+      });
+
+      el.modalCancel.addEventListener("click", function () { el.modal.close("cancel"); });
+    }
+
+    function restorePrefsToUi() {
+      applyTheme(state.prefs.theme || "light");
+      el.pageSize.value = String(state.prefs.pageSize || "100");
+    }
+
+    function loadPrefs() {
+      try {
+        return JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+      } catch (_) {
+        return {};
+      }
+    }
+
+    function savePrefs() {
+      localStorage.setItem(PREF_KEY, JSON.stringify(state.prefs));
+    }
+
+    function saveGlobalPrefs() {
+      state.prefs.pageSize = el.pageSize.value;
+      state.prefs.theme = document.documentElement.dataset.theme || "light";
+      savePrefs();
+    }
+
+    function applyTheme(theme) {
+      var normalized = theme === "dark" ? "dark" : "light";
+      document.documentElement.dataset.theme = normalized;
+      if (el.themeToggle) {
+        el.themeToggle.innerHTML = normalized === "dark" ? sunIcon() : moonIcon();
+        el.themeToggle.title = normalized === "dark" ? "Switch to light mode" : "Switch to dark mode";
+        el.themeToggle.setAttribute("aria-label", normalized === "dark" ? "Switch to light mode" : "Switch to dark mode");
+        el.themeToggle.setAttribute("aria-pressed", normalized === "dark" ? "true" : "false");
+      }
+    }
+
+    function moonIcon() {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6.5 6.5 0 0 0 8.7 8.7A8.5 8.5 0 1 1 12 3Z"></path></svg>';
+    }
+
+    function sunIcon() {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>';
+    }
+
+    function toggleTheme() {
+      var next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+      applyTheme(next);
+      saveGlobalPrefs();
+    }
+
+    function saveProjectPrefs() {
+      if (!state.selectedProject) return;
+      state.prefs.projects = state.prefs.projects || {};
+      state.prefs.projects[state.selectedProject] = Object.assign(state.prefs.projects[state.selectedProject] || {}, {
+        version: el.filterVersion.value.trim(),
+        year: el.filterYear.value.trim(),
+        size: el.filterSize.value.trim(),
+        platform: el.filterPlatform.value.trim(),
+        realms: el.filterRealms.value.trim(),
+        artifact: el.filterArtifact.value.trim(),
+        notes: el.notes.value,
+      });
+      saveGlobalPrefs();
+      savePrefs();
+    }
+
+    function saveProjectNotes() {
+      saveProjectPrefs();
+      setStatus("Notes saved for " + state.selectedProject + ".");
+    }
+
+    function loadCatalogFromStorage() {
+      var saved = localStorage.getItem("rman-browser-catalog");
+      if (!saved) {
+        renderProjects();
+        return;
+      }
+      try {
+        state.catalog = JSON.parse(saved);
+        renderProjects();
+        selectFirstProject();
+        log("Loaded catalog from browser storage.");
+      } catch (error) {
+        log("[Warn] Stored catalog could not be loaded: " + error.message);
+      }
+    }
+
+    async function updateCatalog() {
+      try {
+        setBusy(true);
+        log("Fetching catalog.json...");
+        var response = await fetch(CATALOG_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        state.catalog = await response.json();
+        localStorage.setItem("rman-browser-catalog", JSON.stringify(state.catalog));
+        log("Catalog updated.");
+        renderProjects();
+        selectFirstProject();
+      } catch (error) {
+        log("[Error] Could not fetch catalog: " + error.message);
+        showMessage("Catalog update failed", "The catalog could not be fetched. You can still use Load Local Catalog with a catalog.json file.");
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function loadLocalCatalog() {
+      var file = el.catalogFile.files && el.catalogFile.files[0];
+      if (!file) return;
+      try {
+        state.catalog = JSON.parse(await file.text());
+        localStorage.setItem("rman-browser-catalog", JSON.stringify(state.catalog));
+        renderProjects();
+        selectFirstProject();
+        log("Loaded local catalog: " + file.name);
+      } catch (error) {
+        showMessage("Invalid catalog", error.message);
+      } finally {
+        el.catalogFile.value = "";
+      }
+    }
+
+    function showSettings() {
+      el.modalTitle.textContent = "Settings";
+      el.modalBody.innerHTML =
+        '<div class="subtle">Export your browser settings, filters, theme, selected project, and notes, or import a previously exported settings file.</div>' +
+        '<div class="settings-actions">' +
+        '<button id="modalExportSettings" class="primary">Export Settings</button>' +
+        '<button id="modalImportSettings">Import Settings</button>' +
+        "</div>";
+      el.modalConfirm.hidden = true;
+      el.modalCancel.textContent = "Close";
+      el.modal.showModal();
+
+      document.getElementById("modalExportSettings").addEventListener("click", exportSettings);
+      document.getElementById("modalImportSettings").addEventListener("click", function () {
+        el.settingsFile.click();
+      });
+    }
+
+    function exportSettings() {
+      saveProjectPrefs();
+      var payload = {
+        app: "rman-browser-downloader",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        selectedProject: state.selectedProject,
+        prefs: state.prefs,
+      };
+      saveTextFile(JSON.stringify(payload, null, 2), "rman-browser-settings.json", "application/json");
+      log("Settings exported.");
+    }
+
+    async function importSettings() {
+      var file = el.settingsFile.files && el.settingsFile.files[0];
+      if (!file) return;
+
+      try {
+        var payload = JSON.parse(await file.text());
+        var prefs = payload && payload.prefs ? payload.prefs : payload;
+        if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) {
+          throw new Error("settings file does not contain an object");
+        }
+
+        state.prefs = prefs;
+        savePrefs();
+        restorePrefsToUi();
+
+        var project = payload.selectedProject && state.catalog[payload.selectedProject]
+          ? payload.selectedProject
+          : state.selectedProject;
+
+        if (project) selectProject(project);
+        else {
+          renderProjects();
+          applyFilter();
+        }
+
+        log("Settings imported from " + file.name + ".");
+        if (el.modal.open) el.modal.close("settings-imported");
+      } catch (error) {
+        if (el.modal.open) el.modal.close("settings-import-failed");
+        showMessage("Import failed", "The selected settings file could not be imported: " + escapeHtml(error.message));
+      } finally {
+        el.settingsFile.value = "";
+      }
+    }
+
+    function renderProjects() {
+      var q = el.projectSearch.value.trim().toLowerCase();
+      var projects = Object.keys(state.catalog).sort().filter(function (project) {
+        return !q || project.toLowerCase().includes(q);
+      });
+      el.projectCount.textContent = projects.length + " project" + (projects.length === 1 ? "" : "s");
+      el.projectList.textContent = "";
+
+      projects.forEach(function (project) {
+        var button = document.createElement("button");
+        button.className = "project-item" + (project === state.selectedProject ? " active" : "");
+        button.textContent = project;
+        button.addEventListener("click", function () { selectProject(project); });
+        el.projectList.appendChild(button);
+      });
+    }
+
+    function selectFirstProject() {
+      var projects = Object.keys(state.catalog).sort();
+      if (projects.length) selectProject(state.selectedProject && state.catalog[state.selectedProject] ? state.selectedProject : projects[0]);
+    }
+
+    function selectProject(project) {
+      state.selectedProject = project;
+      state.currentPage = 1;
+      state.selectedRows.clear();
+      state.marked[project] = state.marked[project] || new Set();
+      el.selectedProjectLabel.textContent = project;
+
+      var projectPrefs = state.prefs.projects && state.prefs.projects[project] || {};
+      el.filterVersion.value = projectPrefs.version || "";
+      el.filterYear.value = projectPrefs.year || "";
+      el.filterSize.value = projectPrefs.size || "";
+      el.filterPlatform.value = projectPrefs.platform || "";
+      el.filterRealms.value = projectPrefs.realms || "";
+      el.filterArtifact.value = projectPrefs.artifact || "";
+      el.notes.value = projectPrefs.notes || "";
+      el.fileFilter.value = "";
+      el.estimateOutput.textContent = "Select entries, then estimate or download.";
+
+      renderProjects();
+      applyFilter();
+      refreshCacheInfo();
+      refreshLanguageChoices();
+    }
+
+    function normalizePlatform(entry) {
+      if (!entry || typeof entry !== "object") return "unknown";
+      if (Array.isArray(entry.platforms) && entry.platforms.length) return entry.platforms.map(String).join(",");
+      if (entry.platform) return String(entry.platform);
+      return "unknown";
+    }
+
+    function parseTimestamp(ts) {
+      var date = new Date(ts || "");
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    function humanBytes(n) {
+      n = Number(n);
+      if (!Number.isFinite(n)) return String(n);
+      if (n < 1024) return n + " B";
+      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+      if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 2 : 1) + " MB";
+      return (n / 1024 / 1024 / 1024).toFixed(2) + " GB";
+    }
+
+    function applyFilter() {
+      if (!state.selectedProject) return;
+      var entries = Object.entries(state.catalog[state.selectedProject] || {});
+      var version = el.filterVersion.value.trim().toLowerCase();
+      var year = el.filterYear.value.trim();
+      var size = el.filterSize.value.trim();
+      var platforms = splitTokens(el.filterPlatform.value).map(lower);
+      var realms = splitTokens(el.filterRealms.value).map(lower);
+      var artifacts = splitTokens(el.filterArtifact.value).map(lower);
+
+      state.filteredEntries = entries.filter(function (item) {
+        var mid = item[0];
+        var entry = item[1] || {};
+        var dt = parseTimestamp(entry.timestamp);
+        var entryYear = dt ? String(dt.getFullYear()) : "";
+        var platformValues = splitTokens(normalizePlatform(entry)).map(lower);
+        var realmValues = (entry.realms || []).map(String).map(lower);
+        var artifact = String(entry.artifact_type || "").toLowerCase();
+
+        if (version && !String(entry.version || "").toLowerCase().startsWith(version)) return false;
+        if (year && entryYear !== year) return false;
+        if (size && !sizeMatches(entry.size, size)) return false;
+        if (platforms.length && !platforms.some(function (tok) { return platformValues.includes(tok); })) return false;
+        if (realms.length && !realms.some(function (tok) { return realmValues.includes(tok); })) return false;
+        if (artifacts.length && !artifacts.some(function (tok) { return artifact.includes(tok); })) return false;
+        return Boolean(mid);
+      });
+
+      sortEntries();
+      state.currentPage = 1;
+      saveProjectPrefs();
+      populatePage();
+      refreshLanguageChoices();
+      setStatus("Filter applied: " + state.filteredEntries.length + " entries");
+    }
+
+    function sizeMatches(entrySize, pattern) {
+      var m = pattern.match(/^\s*([<>]=?)\s*([\d.]+)\s*(GB|MB)?\s*$/i);
+      if (!m) return humanBytes(entrySize).toLowerCase().includes(pattern.toLowerCase());
+      var op = m[1];
+      var num = Number(m[2]);
+      var unit = (m[3] || "MB").toUpperCase();
+      var threshold = num * (unit === "GB" ? 1024 ** 3 : 1024 ** 2);
+      var size = Number(entrySize || 0);
+      if (op === ">") return size > threshold;
+      if (op === "<") return size < threshold;
+      if (op === ">=") return size >= threshold;
+      if (op === "<=") return size <= threshold;
+      return true;
+    }
+
+    function sortBy(col) {
+      if (state.sort.col === col) {
+        state.sort.reverse = !state.sort.reverse;
+      } else {
+        state.sort.col = col;
+        state.sort.reverse = col === "Timestamp";
+      }
+      sortEntries();
+      populatePage();
+    }
+
+    function sortEntries() {
+      var col = state.sort.col;
+      var reverse = state.sort.reverse;
+      state.filteredEntries.sort(function (a, b) {
+        var av = sortValue(a, col);
+        var bv = sortValue(b, col);
+        if (av < bv) return reverse ? 1 : -1;
+        if (av > bv) return reverse ? -1 : 1;
+        return 0;
+      });
+    }
+
+    function sortValue(item, col) {
+      var mid = item[0];
+      var entry = item[1] || {};
+      if (col === "Timestamp") {
+        var dt = parseTimestamp(entry.timestamp);
+        return dt ? dt.getTime() : 0;
+      }
+      if (col === "Version") return String(entry.version || "");
+      if (col === "Size") return Number(entry.size || 0);
+      if (col === "Platform") return normalizePlatform(entry);
+      if (col === "ArtifactType") return String(entry.artifact_type || "");
+      if (col === "ManifestID") return mid;
+      if (col === "Realms") return (entry.realms || []).join("|");
+      return "";
+    }
+
+    function populatePage() {
+      el.entryBody.textContent = "";
+      var pageSize = el.pageSize.value;
+      var items = state.filteredEntries;
+
+      if (pageSize === "All") {
+        state.currentPage = 1;
+        state.totalPages = 1;
+      } else {
+        var size = Number(pageSize) || 100;
+        state.totalPages = Math.max(1, Math.ceil(items.length / size));
+        state.currentPage = Math.max(1, Math.min(state.currentPage, state.totalPages));
+        items = items.slice((state.currentPage - 1) * size, state.currentPage * size);
+      }
+
+      items.forEach(function (item) {
+        var mid = item[0];
+        var entry = item[1] || {};
+        var tr = document.createElement("tr");
+        var marked = getMarked().has(mid);
+        if (marked) tr.classList.add("marked");
+        if (isManifestCached(state.selectedProject, mid)) tr.classList.add("cached");
+        if (state.selectedRows.has(mid)) tr.classList.add("selected");
+
+        tr.innerHTML =
+          '<td class="checkbox-cell">' + (marked ? "☑" : "☐") + "</td>" +
+          "<td>" + escapeHtml(mid) + "</td>" +
+          "<td>" + escapeHtml(entry.version || "") + "</td>" +
+          "<td>" + escapeHtml(entry.timestamp || "") + "</td>" +
+          "<td>" + escapeHtml(humanBytes(entry.size || 0)) + "</td>" +
+          "<td>" + escapeHtml(normalizePlatform(entry)) + "</td>" +
+          "<td>" + escapeHtml((entry.realms || []).join("|")) + "</td>" +
+          "<td>" + escapeHtml(entry.artifact_type || "") + "</td>";
+
+        tr.addEventListener("click", function (event) {
+          if (event.target.classList.contains("checkbox-cell")) {
+            toggleMarked(mid);
+            return;
+          }
+          if (event.metaKey || event.ctrlKey) {
+            if (state.selectedRows.has(mid)) state.selectedRows.delete(mid);
+            else state.selectedRows.add(mid);
+          } else {
+            state.selectedRows.clear();
+            state.selectedRows.add(mid);
+          }
+          populatePage();
+        });
+
+        el.entryBody.appendChild(tr);
+      });
+
+      el.entryCount.textContent = state.filteredEntries.length + " matching entr" + (state.filteredEntries.length === 1 ? "y" : "ies");
+      el.pageInput.value = state.filteredEntries.length ? state.currentPage + "/" + state.totalPages : "0/0";
+      updateSelectionCount();
+    }
+
+    function getMarked() {
+      if (!state.selectedProject) return new Set();
+      state.marked[state.selectedProject] = state.marked[state.selectedProject] || new Set();
+      return state.marked[state.selectedProject];
+    }
+
+    function toggleMarked(mid) {
+      var marked = getMarked();
+      if (marked.has(mid)) {
+        marked.delete(mid);
+        log("Unmarked " + mid + " for download.");
+      } else {
+        marked.add(mid);
+        log("Marked " + mid + " for download.");
+      }
+      populatePage();
+    }
+
+    function selectedManifestIds() {
+      var marked = Array.from(getMarked());
+      if (marked.length) return marked;
+      return Array.from(state.selectedRows);
+    }
+
+    function selectAllFiltered() {
+      var marked = getMarked();
+      state.filteredEntries.forEach(function (item) { marked.add(item[0]); });
+      log("Selected " + state.filteredEntries.length + " manifests for download.");
+      populatePage();
+    }
+
+    function clearSelections() {
+      getMarked().clear();
+      state.selectedRows.clear();
+      log("Cleared selections for current project.");
+      populatePage();
+    }
+
+    function clearFilters() {
+      ["filterVersion", "filterYear", "filterSize", "filterPlatform", "filterRealms", "filterArtifact"].forEach(function (id) {
+        el[id].value = "";
+      });
+      applyFilter();
+    }
+
+    function prevPage() {
+      if (state.currentPage > 1) {
+        state.currentPage -= 1;
+        populatePage();
+      }
+    }
+
+    function nextPage() {
+      if (state.currentPage < state.totalPages) {
+        state.currentPage += 1;
+        populatePage();
+      }
+    }
+
+    function gotoPage() {
+      var raw = el.pageInput.value.trim();
+      var page = Number((raw.split("/")[0] || "1").trim());
+      if (!Number.isFinite(page)) return;
+      state.currentPage = Math.max(1, Math.min(page, state.totalPages));
+      populatePage();
+    }
+
+    async function downloadSelectedManifests() {
+      var project = state.selectedProject;
+      var mids = selectedManifestIds();
+      if (!project || !mids.length) return showMessage("No selection", "Select one or more entries or mark them in the first column.");
+
+      setBusy(true);
+      for (var i = 0; i < mids.length; i += 1) {
+        try {
+          await getManifest(project, mids[i]);
+          log("Cached manifest: " + mids[i]);
+        } catch (error) {
+          log("[Warn] Manifest " + mids[i] + " could not be downloaded: " + error.message);
+        }
+      }
+      await refreshCacheInfo();
+      populatePage();
+      setBusy(false);
+      log("Manifest download(s) complete.");
+    }
+
+    async function getManifest(project, mid) {
+      var key = project + "/" + mid;
+      if (state.manifests.has(key)) return state.manifests.get(key);
+
+      var cached = await idbGet("manifests", key);
+      if (cached) {
+        var parsedCached = await RMAN.parse(cached);
+        state.manifests.set(key, parsedCached);
+        return parsedCached;
+      }
+
+      var url = "https://" + project + ".secure.dyn.riotcdn.net/channels/public/releases/" + mid + ".manifest";
+      var controller = state.currentController || new AbortController();
+      var response = await fetch(url, { signal: controller.signal });
+      if (response.status === 404) throw new Error("404 not found");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      var bytes = new Uint8Array(await response.arrayBuffer());
+      await idbPut("manifests", key, bytes);
+      var parsed = await RMAN.parse(bytes);
+      state.manifests.set(key, parsed);
+      return parsed;
+    }
+
+    function isManifestCached(project, mid) {
+      return state.manifestMeta.has(project + "/" + mid) || state.manifests.has(project + "/" + mid);
+    }
+
+    async function selectedFilesForManifest(project, mid) {
+      var manifest = await getManifest(project, mid);
+      var selectedLangs = selectedLanguages();
+      var fileRegex = fileRegexOrNull();
+      var files = manifest.data.files.filter(function (file) {
+        if (fileRegex && !fileRegex.test(file.path)) return false;
+        if (!selectedLangs.length) return true;
+        var tags = file.tags.length ? file.tags.map(lower) : ["none"];
+        return selectedLangs.some(function (lang) { return tags.includes(lang.toLowerCase()); });
+      });
+      return { manifest: manifest, files: files };
+    }
+
+    async function estimateSelectedSize() {
+      var project = state.selectedProject;
+      var mids = selectedManifestIds();
+      if (!project || !mids.length) return showMessage("No selection", "Select one or more entries or mark them in the first column.");
+
+      try {
+        setBusy(true);
+        var total = 0;
+        var lines = [];
+        for (var i = 0; i < mids.length; i += 1) {
+          var result = await selectedFilesForManifest(project, mids[i]);
+          var size = result.files.reduce(function (sum, file) { return sum + Number(file.size || 0); }, 0);
+          total += size;
+          lines.push(mids[i] + ": " + humanBytes(size) + " across " + result.files.length + " file(s)");
+        }
+        el.estimateOutput.textContent = "Total estimated: " + humanBytes(total) + " (" + total + " bytes)";
+        log(lines.join("\n"));
+        log("Total estimated: " + humanBytes(total) + " (" + total + " bytes)");
+      } catch (error) {
+        showMessage("Estimate failed", error.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function previewSelectedFiles() {
+      var project = state.selectedProject;
+      var mids = selectedManifestIds();
+      if (!project || !mids.length) return showMessage("No selection", "Select one or more entries or mark them in the first column.");
+
+      try {
+        setBusy(true);
+        var lines = [];
+        for (var i = 0; i < mids.length; i += 1) {
+          var result = await selectedFilesForManifest(project, mids[i]);
+          lines.push("[" + mids[i] + "] " + result.files.length + " file(s)");
+          result.files.slice(0, 250).forEach(function (file) {
+            lines.push("  " + file.path + "  " + humanBytes(file.size));
+          });
+          if (result.files.length > 250) lines.push("  ... " + (result.files.length - 250) + " more");
+        }
+        showMessage("File Preview", '<div class="file-list">' + escapeHtml(lines.join("\n")) + "</div>");
+      } catch (error) {
+        showMessage("Preview failed", error.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function downloadData() {
+      var project = state.selectedProject;
+      var mids = selectedManifestIds();
+      if (!project || !mids.length) return showMessage("No selection", "Select one or more entries or mark them in the first column.");
+
+      var confirmed = await confirmDialog(
+        "Confirm Download",
+        "The browser will fetch bundle byte ranges from Riot CDN and write the selected files. Pick a folder when prompted if your browser supports it."
+      );
+      if (!confirmed) return;
+
+      var rootHandle = null;
+      if ("showDirectoryPicker" in window) {
+        try {
+          rootHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+        } catch (error) {
+          if (error.name === "AbortError") return;
+        }
+      }
+
+      state.abortAll = false;
+      state.running = true;
+      setBusy(true);
+
+      try {
+        for (var i = 0; i < mids.length; i += 1) {
+          if (state.abortAll) break;
+          await downloadManifestFiles(project, mids[i], rootHandle);
+        }
+        log("All download jobs completed or aborted.");
+      } catch (error) {
+        if (error.name === "AbortError") log("Download aborted.");
+        else showMessage("Download failed", error.message);
+      } finally {
+        state.running = false;
+        state.currentController = null;
+        state.abortAll = false;
+        setBusy(false);
+      }
+    }
+
+    async function downloadManifestFiles(project, mid, rootHandle) {
+      var entry = (state.catalog[project] || {})[mid] || {};
+      var version = sanitizeName(entry.version || "unknown");
+      var artifact = sanitizeName(entry.artifact_type || "unknown");
+      var base = project + "-" + version + "-" + artifact + "-" + mid;
+      var result = await selectedFilesForManifest(project, mid);
+      var files = result.files;
+      var bundleBase = "https://" + project + ".secure.dyn.riotcdn.net/channels/public/bundles";
+
+      log("Starting " + mid + ": " + files.length + " file(s).");
+      for (var i = 0; i < files.length; i += 1) {
+        if (state.abortAll) return;
+        var file = files[i];
+        state.currentController = new AbortController();
+        var bytes = await downloadFileBytes(file, bundleBase, state.currentController.signal);
+        if (rootHandle) {
+          await writeToDirectory(rootHandle, [project, base].concat(file.path.split("/")), bytes);
+        } else {
+          saveBlob(bytes, base + "/" + file.path);
+        }
+        if (i % 10 === 0 || i === files.length - 1) {
+          log("[" + mid + "] " + (i + 1) + "/" + files.length + " " + file.path);
+        }
+      }
+      log("Finished " + mid + ".");
+    }
+
+    async function downloadFileBytes(file, bundleBase, signal) {
+      var parts = [];
+      for (var i = 0; i < file.chunks.length; i += 1) {
+        var chunk = file.chunks[i];
+        var from = chunk.offset;
+        var to = chunk.offset + chunk.compressedSize - 1;
+        var bundleId = BigInt.asUintN(64, chunk.bundleId).toString(16).toUpperCase().padStart(16, "0");
+        var response = await fetch(bundleBase + "/" + bundleId + ".bundle", {
+          signal: signal,
+          headers: { Range: "bytes=" + from + "-" + to },
+        });
+        if (!response.ok && response.status !== 206) throw new Error("Bundle request failed with HTTP " + response.status);
+        var compressed = new Uint8Array(await response.arrayBuffer());
+        parts.push(await RMAN.decompressZstd(compressed, { expectedSize: chunk.uncompressedSize }));
+      }
+      return concat(parts);
+    }
+
+    async function writeToDirectory(root, pathParts, bytes) {
+      var clean = pathParts.filter(Boolean).map(sanitizeName);
+      var dir = root;
+      for (var i = 0; i < clean.length - 1; i += 1) {
+        dir = await dir.getDirectoryHandle(clean[i], { create: true });
+      }
+      var fileHandle = await dir.getFileHandle(clean[clean.length - 1] || "file.bin", { create: true });
+      var writable = await fileHandle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+    }
+
+    function saveBlob(bytes, filename) {
+      var a = document.createElement("a");
+      var blob = new Blob([bytes], { type: "application/octet-stream" });
+      a.href = URL.createObjectURL(blob);
+      a.download = filename.replace(/[\\/:*?"<>|]+/g, "_");
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    }
+
+    function saveTextFile(text, filename, type) {
+      var a = document.createElement("a");
+      var blob = new Blob([text], { type: type || "text/plain" });
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    }
+
+    function abortCurrent() {
+      if (state.currentController) {
+        state.currentController.abort();
+        log("Abort Current requested.");
+      } else {
+        log("No active download request to abort.");
+      }
+    }
+
+    function abortAll() {
+      state.abortAll = true;
+      if (state.currentController) state.currentController.abort();
+      log("Abort All requested.");
+    }
+
+    function refreshLanguageChoices() {
+      var values = new Set(["none"]);
+      state.filteredEntries.slice(0, 80).forEach(function (item) {
+        var entry = item[1] || {};
+        (entry.languages || entry.langs || []).forEach(function (lang) { values.add(String(lang)); });
+      });
+      el.languageChoices.textContent = "";
+      Array.from(values).sort().forEach(function (lang) {
+        var label = document.createElement("label");
+        label.innerHTML = '<input type="checkbox" value="' + escapeHtml(lang) + '"> <span>' + escapeHtml(lang) + "</span>";
+        el.languageChoices.appendChild(label);
+      });
+    }
+
+    function selectedLanguages() {
+      return Array.from(el.languageChoices.querySelectorAll("input:checked")).map(function (input) { return input.value; });
+    }
+
+    function fileRegexOrNull() {
+      var value = el.fileFilter.value.trim();
+      if (!value) return null;
+      try {
+        return new RegExp(value, "i");
+      } catch (error) {
+        throw new Error("Invalid file path regex: " + error.message);
+      }
+    }
+
+    async function refreshCacheInfo() {
+      if (!state.selectedProject) {
+        el.cacheManifestCount.textContent = "0";
+        el.cacheSize.textContent = "0 B";
+        el.bundleCache.textContent = "-";
+        return;
+      }
+      var all = await idbAll("manifests");
+      state.manifestMeta.clear();
+      var count = 0;
+      var size = 0;
+      all.forEach(function (row) {
+        state.manifestMeta.set(row.key, row.bytes.byteLength || row.bytes.length || 0);
+        if (row.key.startsWith(state.selectedProject + "/")) {
+          count += 1;
+          size += row.bytes.byteLength || row.bytes.length || 0;
+        }
+      });
+      el.cacheManifestCount.textContent = String(count);
+      el.cacheSize.textContent = humanBytes(size);
+      el.bundleCache.textContent = "session";
+    }
+
+    async function clearProjectCache() {
+      if (!state.selectedProject) return;
+      var ok = await confirmDialog("Clear Cache", "Delete cached manifests for project '" + state.selectedProject + "' from this browser?");
+      if (!ok) return;
+      var all = await idbAll("manifests");
+      for (var i = 0; i < all.length; i += 1) {
+        if (all[i].key.startsWith(state.selectedProject + "/")) await idbDelete("manifests", all[i].key);
+      }
+      Array.from(state.manifests.keys()).forEach(function (key) {
+        if (key.startsWith(state.selectedProject + "/")) state.manifests.delete(key);
+      });
+      await refreshCacheInfo();
+      populatePage();
+      log("Cache cleared for project " + state.selectedProject + ".");
+    }
+
+    function idbOpen() {
+      return new Promise(function (resolve, reject) {
+        var request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = function () {
+          var db = request.result;
+          if (!db.objectStoreNames.contains("manifests")) db.createObjectStore("manifests", { keyPath: "key" });
+        };
+        request.onsuccess = function () { resolve(request.result); };
+        request.onerror = function () { reject(request.error); };
+      });
+    }
+
+    async function idbGet(store, key) {
+      var db = await idbOpen();
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(store, "readonly");
+        var request = tx.objectStore(store).get(key);
+        request.onsuccess = function () { resolve(request.result && request.result.bytes); };
+        request.onerror = function () { reject(request.error); };
+        tx.oncomplete = function () { db.close(); };
+      });
+    }
+
+    async function idbPut(store, key, bytes) {
+      var db = await idbOpen();
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(store, "readwrite");
+        tx.objectStore(store).put({ key: key, bytes: bytes });
+        tx.oncomplete = function () { db.close(); resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    }
+
+    async function idbDelete(store, key) {
+      var db = await idbOpen();
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(store, "readwrite");
+        tx.objectStore(store).delete(key);
+        tx.oncomplete = function () { db.close(); resolve(); };
+        tx.onerror = function () { reject(tx.error); };
+      });
+    }
+
+    async function idbAll(store) {
+      var db = await idbOpen();
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(store, "readonly");
+        var request = tx.objectStore(store).getAll();
+        request.onsuccess = function () { resolve(request.result || []); };
+        request.onerror = function () { reject(request.error); };
+        tx.oncomplete = function () { db.close(); };
+      });
+    }
+
+    function showCredits() {
+      showMessage("Credits",
+        'This is a Browser port of <a href="https://github.com/RiotArchiveProject/catalog-download-script" target="_blank" rel="noreferrer">RiotArchiveProject/catalog-download-script</a>.<br><br>' +
+        "Original script credits:<br>" +
+        "PixelButts<br>" +
+        '<a href="https://x.com/PixelButts" target="_blank" rel="noreferrer">x.com/PixelButts</a><br>' +
+        '<a href="https://bsky.app/profile/pixel-butts.bsky.social" target="_blank" rel="noreferrer">pixel-butts.bsky.social</a><br><br>' +
+        '<a href="https://github.com/RiotArchiveProject/catalog-download-script" target="_blank" rel="noreferrer">RiotArchiveProject/catalog-download-script</a><br><br>' +
+        "rman-rs acknowledgements:<br>" +
+        '@moonshadow565 for <a href="https://github.com/moonshadow565/rman" target="_blank" rel="noreferrer">rman CLI tools for rito manifest and bundle files</a>; most of the schema is based on his work.<br>' +
+        '@Morilli for <a href="https://github.com/Morilli/ManifestDownloader" target="_blank" rel="noreferrer">ManifestDownloader</a>, early exposure to the .manifest format, and Discord help.<br>' +
+        '@Kurainu for <a href="https://github.com/Kurainu/RMAN-Parse" target="_blank" rel="noreferrer">RMAN-Parse</a>, which informed early drafts of rman-rs.<br><br>' +
+        '<a href="https://github.com/ev3nvy/rman-rs" target="_blank" rel="noreferrer">ev3nvy/rman-rs</a>'
+      );
+    }
+
+    function showMessage(title, body) {
+      el.modalTitle.textContent = title;
+      el.modalBody.innerHTML = body;
+      el.modalConfirm.hidden = true;
+      el.modalCancel.textContent = "Close";
+      el.modal.showModal();
+    }
+
+    function confirmDialog(title, body) {
+      return new Promise(function (resolve) {
+        el.modalTitle.textContent = title;
+        el.modalBody.textContent = body;
+        el.modalConfirm.hidden = false;
+        el.modalCancel.textContent = "Cancel";
+        el.modalConfirm.onclick = function () {
+          el.modal.close("ok");
+        };
+        el.modal.onclose = function () {
+          el.modal.onclose = null;
+          resolve(el.modal.returnValue === "ok");
+        };
+        el.modal.showModal();
+      });
+    }
+
+    function setBusy(busy) {
+      ["updateCatalog", "loadLocalCatalog", "settings", "downloadManifests", "downloadData", "estimateSize", "previewFiles"].forEach(function (id) {
+        el[id].disabled = busy;
+      });
+    }
+
+    function setStatus(text) {
+      el.status.textContent = text;
+    }
+
+    function log(text) {
+      var stamp = new Date().toLocaleTimeString();
+      el.log.textContent += "[" + stamp + "] " + text + "\n";
+      el.log.scrollTop = el.log.scrollHeight;
+      setStatus(text.split("\n").pop());
+    }
+
+    function updateSelectionCount() {
+      el.selectionCount.textContent = selectedManifestIds().length + " selected";
+    }
+
+    function splitTokens(value) {
+      return String(value || "").split(/[,\|;]/).map(function (v) { return v.trim(); }).filter(Boolean);
+    }
+
+    function lower(value) {
+      return String(value).toLowerCase();
+    }
+
+    function sanitizeName(value) {
+      return String(value || "unknown").replace(/[:*?"<>|/\\]+/g, "");
+    }
+
+    function concat(parts) {
+      var length = parts.reduce(function (sum, part) { return sum + part.length; }, 0);
+      var out = new Uint8Array(length);
+      var offset = 0;
+      parts.forEach(function (part) {
+        out.set(part, offset);
+        offset += part.length;
+      });
+      return out;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, function (ch) {
+        return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[ch];
+      });
+    }
+
+    function debounce(fn, wait) {
+      var id;
+      return function () {
+        clearTimeout(id);
+        id = setTimeout(fn, wait);
+      };
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueCartoonCat</title>
+    <style>
+        /* General Reset */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Dark Mode Styles */
+        body {
+            background-color: #121212;
+            color: #FFFFFF;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+            animation: fadeIn 2s ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        .profile-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid #4A90E2;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin: 0;
+            color: #4A90E2;
+            /* Blue accent color */
+            text-shadow: 0 4px 10px rgba(74, 144, 226, 0.8);
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            color: #BBBBBB;
+        }
+
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .box {
+            background-color: #1E1E1E;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 196px;
+            width: 285px;
+        }
+
+        .box:hover {
+            transform: translateY(-5px);
+        }
+
+        .box img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .box .placeholder {
+            width: 100%;
+            height: 150px;
+            background-color: gray;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+
+        .box h3 {
+            margin: 10px 0;
+            font-size: 1.2rem;
+            color: #4A90E2;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+                /* Smaller font size on mobile */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <img src="https://avatars.fastly.steamstatic.com/0c7a99abdff46d4eb1c5610c03eed6873c714e68_full.jpg"
+            alt="Profile Image" class="profile-image">
+        <h1>BlueCartoonCat</h1>
+        <p>Random things I do.</p>
+    </div>
+    <div class="grid-wrapper">
+        <div class="grid">
+            <!-- Placeholder projects -->
+            <div class="box">
+                <a href="rman-web/">
+                    <div class="placeholder"></div>
+                    <h3>
+                        RMAN Web
+                    </h3>
+                </a>
+            </div>
+            <div class="box">
+                <a href="#">
+                    <div class="placeholder"></div>
+                    <h3></h3>
+                </a>
+            </div>
+            <div class="box">
+                <a href="#">
+                    <div class="placeholder"></div>
+                    <h3></h3>
+                </a>
+            </div>
+            <div class="box">
+                <a href="#">
+                    <div class="placeholder"></div>
+                    <h3></h3>
+                </a>
+            </div>
+            <div class="box">
+                <a href="#">
+                    <div class="placeholder"></div>
+                    <h3></h3>
+                </a>
+            </div>
+            <div class="box">
+                <a href="#">
+                    <div class="placeholder"></div>
+                    <h3></h3>
+                </a>
+            </div>
+            <div class="box">
+                <a href="#">
+                    <div class="placeholder"></div>
+                    <h3></h3>
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
