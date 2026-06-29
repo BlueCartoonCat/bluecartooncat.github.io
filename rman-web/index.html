@@ -1713,22 +1713,28 @@
       var project = state.selectedProject;
       var mids = selectedManifestIds();
       if (!project || !mids.length) return showMessage("No selection", "Select one or more entries or mark them in the first column.");
-      if (!("showDirectoryPicker" in window)) {
-        return showMessage(
-          "Folder Download Unsupported",
-          "This browser does not support the File System Access API required to save folders directly. Use a Chromium-based browser such as Chrome or Edge."
-        );
-      }
 
-      var confirmed = await confirmDialog(
-        "Confirm Download",
-        "Choose a folder first. RMAN Web will then fetch bundle byte ranges from Riot CDN and save the selected files into that folder."
-      );
+      var canSaveDirectory = "showDirectoryPicker" in window;
+      var confirmed = canSaveDirectory
+        ? await confirmDialog(
+          "Confirm Download",
+          "Choose a folder first. RMAN Web will then fetch bundle byte ranges from Riot CDN and save the selected files into that folder."
+        )
+        : await confirmDialog(
+          "Browser Download Warning",
+          "If you select all files this might download lot's of things at the same time",
+          "I understand"
+        );
       if (!confirmed) return;
 
-      var rootHandle;
+      var saveTarget = { type: "blob" };
       try {
-        rootHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+        if (canSaveDirectory) {
+          saveTarget = {
+            type: "directory",
+            rootHandle: await window.showDirectoryPicker({ mode: "readwrite" }),
+          };
+        }
       } catch (error) {
         if (error.name === "AbortError") return;
         return showMessage("Folder Selection Failed", error.message);
@@ -1760,7 +1766,7 @@
 
         for (var i = 0; i < jobs.length; i += 1) {
           if (state.abortAll) break;
-          completedFiles = await downloadManifestFiles(jobs[i], rootHandle, completedFiles, totalFiles, progress);
+          completedFiles = await downloadManifestFiles(jobs[i], saveTarget, completedFiles, totalFiles, progress);
         }
         if (!state.abortAll) updateDownloadProgress(totalFiles, totalFiles, "Downloading and Saving");
         if (!state.abortAll) updateBundleProgress(totalChunks, totalChunks);
@@ -1795,7 +1801,7 @@
       };
     }
 
-    async function downloadManifestFiles(job, rootHandle, completedFiles, totalFiles, progress) {
+    async function downloadManifestFiles(job, saveTarget, completedFiles, totalFiles, progress) {
       var project = job.project;
       var mid = job.mid;
       var base = job.base;
@@ -1809,7 +1815,12 @@
         state.currentController = new AbortController();
         updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
         var bytes = await downloadFileBytes(file, bundleBase, state.currentController.signal, progress);
-        await writeToDirectory(rootHandle, [project, base].concat(file.path.split("/")), bytes);
+        var pathParts = [project, base].concat(file.path.split("/"));
+        if (saveTarget.type === "directory") {
+          await writeToDirectory(saveTarget.rootHandle, pathParts, bytes);
+        } else {
+          saveBytesFile(bytes, blobDownloadName(pathParts));
+        }
         completedFiles += 1;
         updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
         if (i % 10 === 0 || i === files.length - 1) {
@@ -1874,6 +1885,17 @@
       var writable = await fileHandle.createWritable();
       await writable.write(bytes);
       await writable.close();
+    }
+
+    function saveBytesFile(bytes, filename) {
+      var a = document.createElement("a");
+      var blob = new Blob([bytes], { type: "application/octet-stream" });
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
     }
 
     function saveTextFile(text, filename, type) {
@@ -2075,11 +2097,12 @@
       el.modal.showModal();
     }
 
-    function confirmDialog(title, body) {
+    function confirmDialog(title, body, confirmText) {
       return new Promise(function (resolve) {
         el.modalTitle.textContent = title;
         el.modalBody.textContent = body;
         el.modalConfirm.hidden = false;
+        el.modalConfirm.textContent = confirmText || "OK";
         el.modalCancel.textContent = "Cancel";
         el.modalConfirm.onclick = function () {
           el.modal.close("ok");
@@ -2131,6 +2154,11 @@
 
     function sanitizeName(value) {
       return String(value || "unknown").replace(/[:*?"<>|/\\]+/g, "");
+    }
+
+    function blobDownloadName(pathParts) {
+      var clean = pathParts.filter(Boolean).map(sanitizeName).filter(Boolean);
+      return clean.join("__") || "download.bin";
     }
 
     function concat(parts) {
