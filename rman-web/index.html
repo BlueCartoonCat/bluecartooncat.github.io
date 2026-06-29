@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RMAN Browser</title>
+  <title>RMAN Web</title>
   <script src="./rman.js"></script>
   <style>
     :root {
@@ -289,6 +289,76 @@
       margin-bottom: 4px;
     }
 
+    .multi-filter {
+      position: relative;
+    }
+
+    .multi-filter-button {
+      width: 100%;
+      justify-content: space-between;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .multi-filter-button span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .multi-filter-button::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: rotate(45deg) translateY(-2px);
+      flex: 0 0 auto;
+      opacity: 0.75;
+    }
+
+    .multi-filter-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 6px;
+      display: none;
+    }
+
+    .multi-filter.open .multi-filter-menu {
+      display: block;
+    }
+
+    .multi-filter-option {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 4px 5px;
+      border-radius: 5px;
+      color: var(--text);
+    }
+
+    .multi-filter-option:hover {
+      background: var(--panel-2);
+    }
+
+    .multi-filter-option input {
+      width: auto;
+      min-height: auto;
+    }
+
     .table-wrap {
       overflow: auto;
       min-height: 320px;
@@ -429,6 +499,31 @@
       gap: 10px;
     }
 
+    .download-progress {
+      display: none;
+      gap: 6px;
+    }
+
+    .download-progress.visible {
+      display: grid;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-soft);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-2);
+      transition: width 160ms ease;
+    }
+
     .statusbar {
       min-height: 30px;
       padding: 7px 12px;
@@ -512,21 +607,20 @@
 <body>
   <div class="app">
     <header class="toolbar">
-      <div class="brand"><span class="brand-mark">RM</span><span>RMAN Browser</span></div>
+      <div class="brand"><span class="brand-mark" title="RMAN Web" aria-label="RMAN Web">RM</span></div>
       <button id="updateCatalog" class="primary">Update Catalog</button>
       <button id="loadLocalCatalog">Load Local Catalog</button>
       <button id="selectAll">Select All</button>
       <button id="clearSelections">Clear</button>
       <button id="downloadManifests">Download Manifest(s)</button>
       <button id="downloadData" class="primary">Download Data</button>
-      <button id="abortCurrent" class="danger">Abort Current</button>
-      <button id="abortAll" class="danger">Abort All</button>
+      <button id="abortDownload" class="danger">Abort</button>
       <span class="toolbar-spacer"></span>
       <div class="toolbar-right">
         <button id="themeToggle" class="theme-toggle" title="Switch theme" aria-label="Switch theme"></button>
         <button id="credits">Credits</button>
         <button id="settings">Settings</button>
-        <a class="icon-button" href="https://github.com/BlueCartoonCat/rman-web" target="_blank" rel="noreferrer" title="https://github.com/BlueCartoonCat/rman-web" aria-label="Open GitHub repository">
+        <a class="icon-button" href="https://github.com/BlueCartoonCat/bluecartooncat.github.io/tree/gh-pages/rman-web" target="_blank" rel="noreferrer" title="https://github.com/BlueCartoonCat/bluecartooncat.github.io/tree/gh-pages/rman-web" aria-label="Open GitHub repository">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 .5A11.5 11.5 0 0 0 8.36 22.9c.58.1.79-.25.79-.56v-2.02c-3.22.7-3.9-1.38-3.9-1.38-.53-1.35-1.29-1.71-1.29-1.71-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.57-.29-5.27-1.29-5.27-5.73 0-1.27.45-2.3 1.2-3.11-.12-.3-.52-1.49.11-3.07 0 0 .98-.31 3.2 1.19A11.1 11.1 0 0 1 12 6.01c.99 0 1.98.13 2.91.4 2.22-1.5 3.2-1.19 3.2-1.19.63 1.58.23 2.77.11 3.07.75.81 1.2 1.84 1.2 3.11 0 4.45-2.71 5.43-5.29 5.72.42.36.79 1.07.79 2.16v3.06c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"></path></svg>
         </a>
       </div>
@@ -557,11 +651,11 @@
         </div>
         <div class="filters">
           <div class="field"><label>Version</label><input id="filterVersion" placeholder="starts with"></div>
-          <div class="field"><label>Year</label><input id="filterYear" placeholder="2024"></div>
+          <div class="field"><label>Year</label><div id="filterYearMulti" class="multi-filter"></div></div>
           <div class="field"><label>Size</label><input id="filterSize" placeholder="&gt; 2 GB"></div>
-          <div class="field"><label>Platform(s)</label><input id="filterPlatform" placeholder="windows,mac"></div>
-          <div class="field"><label>Realms</label><input id="filterRealms" placeholder="na,eu"></div>
-          <div class="field"><label>Artifact</label><input id="filterArtifact" placeholder="game"></div>
+          <div class="field"><label>Platform(s)</label><div id="filterPlatformMulti" class="multi-filter"></div></div>
+          <div class="field"><label>Realms</label><div id="filterRealmsMulti" class="multi-filter"></div></div>
+          <div class="field"><label>Artifact</label><div id="filterArtifactMulti" class="multi-filter"></div></div>
           <button id="clearFilters">Reset</button>
         </div>
         <div class="table-wrap">
@@ -622,6 +716,10 @@
             <button id="estimateSize">Estimate Size</button>
             <button id="previewFiles">Preview Files</button>
           </div>
+          <div id="downloadProgress" class="download-progress" aria-live="polite">
+            <div id="downloadProgressText" class="subtle">Downloading and Saving 0%</div>
+            <div class="progress-track"><div id="downloadProgressFill" class="progress-fill"></div></div>
+          </div>
           <div id="estimateOutput" class="subtle">Select entries, then estimate or download.</div>
         </div>
         <div class="side-section" style="flex:1">
@@ -662,6 +760,13 @@
       sort: { col: "Timestamp", reverse: true },
       manifests: new Map(),
       manifestMeta: new Map(),
+      filterSelections: {
+        year: [],
+        platform: [],
+        realms: [],
+        artifact: [],
+      },
+      progressToken: 0,
       currentController: null,
       abortAll: false,
       running: false,
@@ -683,12 +788,12 @@
     function cacheElements() {
       [
         "updateCatalog", "loadLocalCatalog", "catalogFile", "settings", "settingsFile",
-        "credits", "selectAll", "clearSelections", "downloadManifests", "downloadData", "abortCurrent", "abortAll", "themeToggle", "projectCount",
-        "projectSearch", "projectList", "entryCount", "filterVersion", "filterYear", "filterSize",
-        "filterPlatform", "filterRealms", "filterArtifact", "clearFilters", "entryBody", "pageSize",
+        "credits", "selectAll", "clearSelections", "downloadManifests", "downloadData", "abortDownload", "themeToggle", "projectCount",
+        "projectSearch", "projectList", "entryCount", "filterVersion", "filterYearMulti", "filterSize",
+        "filterPlatformMulti", "filterRealmsMulti", "filterArtifactMulti", "clearFilters", "entryBody", "pageSize",
         "prevPage", "nextPage", "pageInput", "selectionCount", "log", "selectedProjectLabel",
         "cacheManifestCount", "cacheSize", "bundleCache", "refreshCache", "clearCache", "languageChoices",
-        "fileFilter", "estimateSize", "previewFiles", "estimateOutput", "notes", "status", "modal",
+        "fileFilter", "estimateSize", "previewFiles", "downloadProgress", "downloadProgressText", "downloadProgressFill", "estimateOutput", "notes", "status", "modal",
         "modalTitle", "modalBody", "modalCancel", "modalConfirm",
       ].forEach(function get(id) {
         el[id] = document.getElementById(id);
@@ -708,8 +813,7 @@
       el.clearSelections.addEventListener("click", clearSelections);
       el.downloadManifests.addEventListener("click", downloadSelectedManifests);
       el.downloadData.addEventListener("click", downloadData);
-      el.abortCurrent.addEventListener("click", abortCurrent);
-      el.abortAll.addEventListener("click", abortAll);
+      el.abortDownload.addEventListener("click", abortDownload);
       el.refreshCache.addEventListener("click", refreshCacheInfo);
       el.clearCache.addEventListener("click", clearProjectCache);
       el.estimateSize.addEventListener("click", estimateSelectedSize);
@@ -727,8 +831,12 @@
       });
       el.notes.addEventListener("input", debounce(saveProjectNotes, 350));
 
-      ["filterVersion", "filterYear", "filterSize", "filterPlatform", "filterRealms", "filterArtifact"].forEach(function (id) {
+      ["filterVersion", "filterSize"].forEach(function (id) {
         el[id].addEventListener("input", debounce(applyFilter, 180));
+      });
+
+      document.addEventListener("click", function (event) {
+        if (!event.target.closest(".multi-filter")) closeMultiFilters();
       });
 
       document.querySelectorAll("th[data-col]").forEach(function (th) {
@@ -791,11 +899,11 @@
       state.prefs.projects = state.prefs.projects || {};
       state.prefs.projects[state.selectedProject] = Object.assign(state.prefs.projects[state.selectedProject] || {}, {
         version: el.filterVersion.value.trim(),
-        year: el.filterYear.value.trim(),
+        year: state.filterSelections.year,
         size: el.filterSize.value.trim(),
-        platform: el.filterPlatform.value.trim(),
-        realms: el.filterRealms.value.trim(),
-        artifact: el.filterArtifact.value.trim(),
+        platform: state.filterSelections.platform,
+        realms: state.filterSelections.realms,
+        artifact: state.filterSelections.artifact,
         notes: el.notes.value,
       });
       saveGlobalPrefs();
@@ -955,19 +1063,132 @@
 
       var projectPrefs = state.prefs.projects && state.prefs.projects[project] || {};
       el.filterVersion.value = projectPrefs.version || "";
-      el.filterYear.value = projectPrefs.year || "";
       el.filterSize.value = projectPrefs.size || "";
-      el.filterPlatform.value = projectPrefs.platform || "";
-      el.filterRealms.value = projectPrefs.realms || "";
-      el.filterArtifact.value = projectPrefs.artifact || "";
+      state.filterSelections.year = prefTokens(projectPrefs.year);
+      state.filterSelections.platform = prefTokens(projectPrefs.platform);
+      state.filterSelections.realms = prefTokens(projectPrefs.realms);
+      state.filterSelections.artifact = prefTokens(projectPrefs.artifact);
       el.notes.value = projectPrefs.notes || "";
       el.fileFilter.value = "";
       el.estimateOutput.textContent = "Select entries, then estimate or download.";
 
       renderProjects();
+      renderFilterDropdowns();
       applyFilter();
       refreshCacheInfo();
       refreshLanguageChoices();
+    }
+
+    function renderFilterDropdowns(openKey) {
+      var entries = Object.values(state.catalog[state.selectedProject] || {});
+      renderMultiFilter("year", el.filterYearMulti, uniqueValues(entries, function (entry) {
+        var dt = parseTimestamp(entry.timestamp);
+        return dt ? String(dt.getFullYear()) : "";
+      }), openKey);
+      renderMultiFilter("platform", el.filterPlatformMulti, uniqueValues(entries, normalizePlatform, true), openKey);
+      renderMultiFilter("realms", el.filterRealmsMulti, uniqueValues(entries, function (entry) {
+        return entry.realms || [];
+      }), openKey);
+      renderMultiFilter("artifact", el.filterArtifactMulti, uniqueValues(entries, function (entry) {
+        return entry.artifact_type || "";
+      }), openKey);
+    }
+
+    function renderMultiFilter(key, container, values, openKey) {
+      var available = new Set(values);
+      var selected = new Set((state.filterSelections[key] || []).filter(function (value) {
+        return available.has(value);
+      }));
+      state.filterSelections[key] = Array.from(selected).sort(naturalSort);
+      var label = selected.size === 0 ? "All" : summarizeSelection(Array.from(selected));
+
+      container.textContent = "";
+
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "multi-filter-button";
+      button.innerHTML = "<span>" + escapeHtml(label) + "</span>";
+      button.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var isOpen = container.classList.contains("open");
+        closeMultiFilters();
+        if (!isOpen) container.classList.add("open");
+      });
+
+      var menu = document.createElement("div");
+      menu.className = "multi-filter-menu";
+      menu.addEventListener("click", function (event) {
+        event.stopPropagation();
+      });
+
+      menu.appendChild(makeMultiFilterOption("All", selected.size === 0, function () {
+        state.filterSelections[key] = [];
+        renderFilterDropdowns(key);
+        applyFilter();
+      }));
+
+      values.forEach(function (value) {
+        menu.appendChild(makeMultiFilterOption(value, selected.has(value), function (checked) {
+          var next = new Set(state.filterSelections[key] || []);
+          if (checked) next.add(value);
+          else next.delete(value);
+          state.filterSelections[key] = Array.from(next).sort(naturalSort);
+          renderFilterDropdowns(key);
+          applyFilter();
+        }));
+      });
+
+      container.appendChild(button);
+      container.appendChild(menu);
+      if (openKey === key) container.classList.add("open");
+    }
+
+    function makeMultiFilterOption(labelText, checked, onChange) {
+      var label = document.createElement("label");
+      label.className = "multi-filter-option";
+
+      var input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = checked;
+      input.addEventListener("change", function () {
+        onChange(input.checked);
+      });
+
+      var text = document.createElement("span");
+      text.textContent = labelText;
+
+      label.appendChild(input);
+      label.appendChild(text);
+      return label;
+    }
+
+    function uniqueValues(entries, getter, splitValue) {
+      var values = new Set();
+      entries.forEach(function (entry) {
+        var raw = getter(entry || {});
+        var list = Array.isArray(raw) ? raw : splitValue ? splitTokens(raw) : [raw];
+        list.forEach(function (value) {
+          value = String(value || "").trim();
+          if (value) values.add(value);
+        });
+      });
+      return Array.from(values).sort(naturalSort);
+    }
+
+    function summarizeSelection(values) {
+      if (values.length <= 2) return values.join(", ");
+      return values.slice(0, 2).join(", ") + " +" + (values.length - 2);
+    }
+
+    function closeMultiFilters() {
+      document.querySelectorAll(".multi-filter.open").forEach(function (node) {
+        node.classList.remove("open");
+      });
+    }
+
+    function prefTokens(value) {
+      if (Array.isArray(value)) return value.map(String).filter(Boolean);
+      return splitTokens(value);
     }
 
     function normalizePlatform(entry) {
@@ -995,11 +1216,11 @@
       if (!state.selectedProject) return;
       var entries = Object.entries(state.catalog[state.selectedProject] || {});
       var version = el.filterVersion.value.trim().toLowerCase();
-      var year = el.filterYear.value.trim();
       var size = el.filterSize.value.trim();
-      var platforms = splitTokens(el.filterPlatform.value).map(lower);
-      var realms = splitTokens(el.filterRealms.value).map(lower);
-      var artifacts = splitTokens(el.filterArtifact.value).map(lower);
+      var years = state.filterSelections.year.map(lower);
+      var platforms = state.filterSelections.platform.map(lower);
+      var realms = state.filterSelections.realms.map(lower);
+      var artifacts = state.filterSelections.artifact.map(lower);
 
       state.filteredEntries = entries.filter(function (item) {
         var mid = item[0];
@@ -1011,7 +1232,7 @@
         var artifact = String(entry.artifact_type || "").toLowerCase();
 
         if (version && !String(entry.version || "").toLowerCase().startsWith(version)) return false;
-        if (year && entryYear !== year) return false;
+        if (years.length && !years.includes(entryYear.toLowerCase())) return false;
         if (size && !sizeMatches(entry.size, size)) return false;
         if (platforms.length && !platforms.some(function (tok) { return platformValues.includes(tok); })) return false;
         if (realms.length && !realms.some(function (tok) { return realmValues.includes(tok); })) return false;
@@ -1177,9 +1398,14 @@
     }
 
     function clearFilters() {
-      ["filterVersion", "filterYear", "filterSize", "filterPlatform", "filterRealms", "filterArtifact"].forEach(function (id) {
+      ["filterVersion", "filterSize"].forEach(function (id) {
         el[id].value = "";
       });
+      state.filterSelections.year = [];
+      state.filterSelections.platform = [];
+      state.filterSelections.realms = [];
+      state.filterSelections.artifact = [];
+      renderFilterDropdowns();
       applyFilter();
     }
 
@@ -1327,7 +1553,7 @@
 
       var confirmed = await confirmDialog(
         "Confirm Download",
-        "Choose a folder first. RMAN Browser will then fetch bundle byte ranges from Riot CDN and save the selected files into that folder."
+        "Choose a folder first. RMAN Web will then fetch bundle byte ranges from Riot CDN and save the selected files into that folder."
       );
       if (!confirmed) return;
 
@@ -1341,13 +1567,29 @@
 
       state.abortAll = false;
       state.running = true;
+      state.progressToken += 1;
+      var progressToken = state.progressToken;
       setBusy(true);
 
       try {
-        for (var i = 0; i < mids.length; i += 1) {
+        updateDownloadProgress(0, 0, "Downloading and Saving");
+        var jobs = [];
+        var totalFiles = 0;
+        for (var p = 0; p < mids.length; p += 1) {
           if (state.abortAll) break;
-          await downloadManifestFiles(project, mids[i], rootHandle);
+          var job = await prepareDownloadJob(project, mids[p]);
+          jobs.push(job);
+          totalFiles += job.files.length;
         }
+
+        var completedFiles = 0;
+        updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
+
+        for (var i = 0; i < jobs.length; i += 1) {
+          if (state.abortAll) break;
+          completedFiles = await downloadManifestFiles(jobs[i], rootHandle, completedFiles, totalFiles);
+        }
+        if (!state.abortAll) updateDownloadProgress(totalFiles, totalFiles, "Downloading and Saving");
         log("All download jobs completed or aborted.");
       } catch (error) {
         if (error.name === "AbortError") log("Download aborted.");
@@ -1356,31 +1598,51 @@
         state.running = false;
         state.currentController = null;
         state.abortAll = false;
+        setTimeout(function () {
+          if (state.progressToken === progressToken) hideDownloadProgress();
+        }, 1200);
         setBusy(false);
       }
     }
 
-    async function downloadManifestFiles(project, mid, rootHandle) {
+    async function prepareDownloadJob(project, mid) {
       var entry = (state.catalog[project] || {})[mid] || {};
       var version = sanitizeName(entry.version || "unknown");
       var artifact = sanitizeName(entry.artifact_type || "unknown");
       var base = project + "-" + version + "-" + artifact + "-" + mid;
       var result = await selectedFilesForManifest(project, mid);
-      var files = result.files;
-      var bundleBase = "https://" + project + ".secure.dyn.riotcdn.net/channels/public/bundles";
+      return {
+        project: project,
+        mid: mid,
+        base: base,
+        files: result.files,
+        bundleBase: "https://" + project + ".secure.dyn.riotcdn.net/channels/public/bundles",
+      };
+    }
+
+    async function downloadManifestFiles(job, rootHandle, completedFiles, totalFiles) {
+      var project = job.project;
+      var mid = job.mid;
+      var base = job.base;
+      var files = job.files;
+      var bundleBase = job.bundleBase;
 
       log("Starting " + mid + ": " + files.length + " file(s).");
       for (var i = 0; i < files.length; i += 1) {
-        if (state.abortAll) return;
+        if (state.abortAll) return completedFiles;
         var file = files[i];
         state.currentController = new AbortController();
+        updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
         var bytes = await downloadFileBytes(file, bundleBase, state.currentController.signal);
         await writeToDirectory(rootHandle, [project, base].concat(file.path.split("/")), bytes);
+        completedFiles += 1;
+        updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
         if (i % 10 === 0 || i === files.length - 1) {
           log("[" + mid + "] " + (i + 1) + "/" + files.length + " " + file.path);
         }
       }
       log("Finished " + mid + ".");
+      return completedFiles;
     }
 
     async function downloadFileBytes(file, bundleBase, signal) {
@@ -1399,6 +1661,20 @@
         parts.push(await RMAN.decompressZstd(compressed, { expectedSize: chunk.uncompressedSize }));
       }
       return concat(parts);
+    }
+
+    function updateDownloadProgress(done, total, label) {
+      var percent = total > 0 ? Math.round((done / total) * 100) : 0;
+      el.downloadProgress.classList.add("visible");
+      el.downloadProgressFill.style.width = percent + "%";
+      el.downloadProgressText.textContent = (label || "Downloading and Saving") + " " + percent + "%";
+      setStatus((label || "Downloading and Saving") + " " + percent + "%");
+    }
+
+    function hideDownloadProgress() {
+      el.downloadProgress.classList.remove("visible");
+      el.downloadProgressFill.style.width = "0%";
+      el.downloadProgressText.textContent = "Downloading and Saving 0%";
     }
 
     async function writeToDirectory(root, pathParts, bytes) {
@@ -1424,19 +1700,10 @@
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
     }
 
-    function abortCurrent() {
-      if (state.currentController) {
-        state.currentController.abort();
-        log("Abort Current requested.");
-      } else {
-        log("No active download request to abort.");
-      }
-    }
-
-    function abortAll() {
+    function abortDownload() {
       state.abortAll = true;
       if (state.currentController) state.currentController.abort();
-      log("Abort All requested.");
+      log(state.running ? "Abort requested." : "No active download to abort.");
     }
 
     function refreshLanguageChoices() {
@@ -1628,6 +1895,10 @@
 
     function lower(value) {
       return String(value).toLowerCase();
+    }
+
+    function naturalSort(a, b) {
+      return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
     }
 
     function sanitizeName(value) {
