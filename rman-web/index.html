@@ -578,6 +578,64 @@
       font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
+    .file-picker {
+      display: grid;
+      gap: 10px;
+    }
+
+    .file-picker-toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .file-tree {
+      max-height: min(58vh, 560px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface-soft);
+      padding: 8px;
+      font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .file-tree-manifest {
+      margin: 0 0 10px;
+    }
+
+    .file-tree-title {
+      font-weight: 700;
+      margin: 4px 0 6px;
+      color: var(--text);
+    }
+
+    .file-tree-folder {
+      color: var(--muted);
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+
+    .file-tree-file {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: max-content;
+      padding: 2px 0;
+      white-space: nowrap;
+    }
+
+    .file-tree-file input {
+      width: auto;
+      min-height: auto;
+      flex: 0 0 auto;
+    }
+
+    .file-tree-size {
+      color: var(--muted);
+      margin-left: 8px;
+    }
+
     .settings-actions {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -711,14 +769,20 @@
         </div>
         <div class="side-section download-options">
           <div class="field"><label>Languages / Tags</label><div id="languageChoices" class="choice-grid"></div></div>
-          <div class="field"><label>File path regex</label><input id="fileFilter" placeholder="leave blank for all files"></div>
+          <div class="field">
+            <label>File path regex</label>
+            <input id="fileFilter" placeholder="leave blank for all files">
+            <div id="fileFilterNotice" class="subtle"></div>
+          </div>
           <div class="inline-actions">
             <button id="estimateSize">Estimate Size</button>
-            <button id="previewFiles">Preview Files</button>
+            <button id="previewFiles">Preview & Filter files</button>
           </div>
           <div id="downloadProgress" class="download-progress" aria-live="polite">
             <div id="downloadProgressText" class="subtle">Downloading and Saving 0%</div>
             <div class="progress-track"><div id="downloadProgressFill" class="progress-fill"></div></div>
+            <div id="bundleProgressText" class="subtle">Fetching bundles 0%</div>
+            <div class="progress-track"><div id="bundleProgressFill" class="progress-fill"></div></div>
           </div>
           <div id="estimateOutput" class="subtle">Select entries, then estimate or download.</div>
         </div>
@@ -760,6 +824,7 @@
       sort: { col: "Timestamp", reverse: true },
       manifests: new Map(),
       manifestMeta: new Map(),
+      fileSelections: new Map(),
       filterSelections: {
         year: [],
         platform: [],
@@ -767,6 +832,7 @@
         artifact: [],
       },
       progressToken: 0,
+      fileFilterNoticeToken: 0,
       currentController: null,
       abortAll: false,
       running: false,
@@ -793,7 +859,7 @@
         "filterPlatformMulti", "filterRealmsMulti", "filterArtifactMulti", "clearFilters", "entryBody", "pageSize",
         "prevPage", "nextPage", "pageInput", "selectionCount", "log", "selectedProjectLabel",
         "cacheManifestCount", "cacheSize", "bundleCache", "refreshCache", "clearCache", "languageChoices",
-        "fileFilter", "estimateSize", "previewFiles", "downloadProgress", "downloadProgressText", "downloadProgressFill", "estimateOutput", "notes", "status", "modal",
+        "fileFilter", "fileFilterNotice", "estimateSize", "previewFiles", "downloadProgress", "downloadProgressText", "downloadProgressFill", "bundleProgressText", "bundleProgressFill", "estimateOutput", "notes", "status", "modal",
         "modalTitle", "modalBody", "modalCancel", "modalConfirm",
       ].forEach(function get(id) {
         el[id] = document.getElementById(id);
@@ -818,6 +884,8 @@
       el.clearCache.addEventListener("click", clearProjectCache);
       el.estimateSize.addEventListener("click", estimateSelectedSize);
       el.previewFiles.addEventListener("click", previewSelectedFiles);
+      el.fileFilter.addEventListener("input", debounce(updateFileFilterNotice, 300));
+      el.languageChoices.addEventListener("change", updateFileFilterNotice);
       el.clearFilters.addEventListener("click", clearFilters);
       el.prevPage.addEventListener("click", prevPage);
       el.nextPage.addEventListener("click", nextPage);
@@ -987,13 +1055,13 @@
     function exportSettings() {
       saveProjectPrefs();
       var payload = {
-        app: "rman-browser-downloader",
+        app: "rman-web",
         version: 1,
         exportedAt: new Date().toISOString(),
         selectedProject: state.selectedProject,
         prefs: state.prefs,
       };
-      saveTextFile(JSON.stringify(payload, null, 2), "rman-browser-settings.json", "application/json");
+      saveTextFile(JSON.stringify(payload, null, 2), "rman-web-settings.json", "application/json");
       log("Settings exported.");
     }
 
@@ -1070,6 +1138,7 @@
       state.filterSelections.artifact = prefTokens(projectPrefs.artifact);
       el.notes.value = projectPrefs.notes || "";
       el.fileFilter.value = "";
+      el.fileFilterNotice.textContent = "";
       el.estimateOutput.textContent = "Select entries, then estimate or download.";
 
       renderProjects();
@@ -1272,6 +1341,7 @@
       }
       sortEntries();
       populatePage();
+      updateFileFilterNotice();
     }
 
     function sortEntries() {
@@ -1349,6 +1419,7 @@
             state.selectedRows.add(mid);
           }
           populatePage();
+          updateFileFilterNotice();
         });
 
         el.entryBody.appendChild(tr);
@@ -1375,6 +1446,7 @@
         log("Marked " + mid + " for download.");
       }
       populatePage();
+      updateFileFilterNotice();
     }
 
     function selectedManifestIds() {
@@ -1388,6 +1460,7 @@
       state.filteredEntries.forEach(function (item) { marked.add(item[0]); });
       log("Selected " + state.filteredEntries.length + " manifests for download.");
       populatePage();
+      updateFileFilterNotice();
     }
 
     function clearSelections() {
@@ -1395,6 +1468,7 @@
       state.selectedRows.clear();
       log("Cleared selections for current project.");
       populatePage();
+      updateFileFilterNotice();
     }
 
     function clearFilters() {
@@ -1482,8 +1556,10 @@
       var manifest = await getManifest(project, mid);
       var selectedLangs = selectedLanguages();
       var fileRegex = fileRegexOrNull();
+      var selectedPaths = state.fileSelections.get(selectionKey(project, mid));
       var files = manifest.data.files.filter(function (file) {
         if (fileRegex && !fileRegex.test(file.path)) return false;
+        if (selectedPaths && !selectedPaths.has(file.path)) return false;
         if (!selectedLangs.length) return true;
         var tags = file.tags.length ? file.tags.map(lower) : ["none"];
         return selectedLangs.some(function (lang) { return tags.includes(lang.toLowerCase()); });
@@ -1523,21 +1599,114 @@
 
       try {
         setBusy(true);
-        var lines = [];
+        var groups = [];
         for (var i = 0; i < mids.length; i += 1) {
-          var result = await selectedFilesForManifest(project, mids[i]);
-          lines.push("[" + mids[i] + "] " + result.files.length + " file(s)");
-          result.files.slice(0, 250).forEach(function (file) {
-            lines.push("  " + file.path + "  " + humanBytes(file.size));
+          var manifest = await getManifest(project, mids[i]);
+          var selectedLangs = selectedLanguages();
+          var fileRegex = fileRegexOrNull();
+          var files = manifest.data.files.filter(function (file) {
+            if (fileRegex && !fileRegex.test(file.path)) return false;
+            if (!selectedLangs.length) return true;
+            var tags = file.tags.length ? file.tags.map(lower) : ["none"];
+            return selectedLangs.some(function (lang) { return tags.includes(lang.toLowerCase()); });
+          }).sort(function (a, b) {
+            return naturalSort(a.path, b.path);
           });
-          if (result.files.length > 250) lines.push("  ... " + (result.files.length - 250) + " more");
+          groups.push({ mid: mids[i], files: files });
         }
-        showMessage("File Preview", '<div class="file-list">' + escapeHtml(lines.join("\n")) + "</div>");
+        showFileSelectionModal(project, groups);
       } catch (error) {
         showMessage("Preview failed", error.message);
       } finally {
         setBusy(false);
       }
+    }
+
+    function showFileSelectionModal(project, groups) {
+      var total = groups.reduce(function (sum, group) { return sum + group.files.length; }, 0);
+      el.modalTitle.textContent = "Preview & Filter files";
+      el.modalBody.innerHTML =
+        '<div class="file-picker">' +
+        '<div class="subtle">Choose specific files to download. If every file is checked, RMAN Web treats it as downloading all filtered files.</div>' +
+        '<div class="file-picker-toolbar">' +
+        '<button id="fileSelectAll">Select All</button>' +
+        '<button id="fileSelectNone">Clear</button>' +
+        '<span id="fileSelectionSummary" class="subtle"></span>' +
+        "</div>" +
+        '<div class="file-tree">' + groups.map(function (group) { return fileTreeHtml(project, group); }).join("") + "</div>" +
+        "</div>";
+      el.modalConfirm.hidden = false;
+      el.modalConfirm.textContent = "Save Selection";
+      el.modalCancel.textContent = "Close";
+      updateFileSelectionSummary(total);
+
+      document.getElementById("fileSelectAll").addEventListener("click", function () {
+        el.modalBody.querySelectorAll(".file-tree-file input").forEach(function (input) { input.checked = true; });
+        updateFileSelectionSummary(total);
+      });
+      document.getElementById("fileSelectNone").addEventListener("click", function () {
+        el.modalBody.querySelectorAll(".file-tree-file input").forEach(function (input) { input.checked = false; });
+        updateFileSelectionSummary(total);
+      });
+      el.modalBody.querySelectorAll(".file-tree-file input").forEach(function (input) {
+        input.addEventListener("change", function () { updateFileSelectionSummary(total); });
+      });
+
+      el.modalConfirm.onclick = function () {
+        saveFileSelectionsFromModal(project, groups);
+        el.modal.close("file-selection-saved");
+        log("File selection saved.");
+        updateFileFilterNotice();
+      };
+      el.modal.showModal();
+    }
+
+    function fileTreeHtml(project, group) {
+      var key = selectionKey(project, group.mid);
+      var selectedPaths = state.fileSelections.get(key);
+      var seenFolders = new Set();
+      var html = '<div class="file-tree-manifest" data-mid="' + escapeHtml(group.mid) + '">';
+      html += '<div class="file-tree-title">' + escapeHtml(group.mid) + " - " + group.files.length + " file(s)</div>";
+
+      group.files.forEach(function (file) {
+        var parts = file.path.split("/");
+        var folder = "";
+        for (var i = 0; i < parts.length - 1; i += 1) {
+          folder = folder ? folder + "/" + parts[i] : parts[i];
+          var folderKey = group.mid + "/" + folder;
+          if (!seenFolders.has(folderKey)) {
+            seenFolders.add(folderKey);
+            html += '<div class="file-tree-folder" style="padding-left:' + (i * 16) + 'px">▸ ' + escapeHtml(parts[i]) + "</div>";
+          }
+        }
+
+        var checked = !selectedPaths || selectedPaths.has(file.path);
+        html += '<label class="file-tree-file" style="padding-left:' + Math.max(0, (parts.length - 1) * 16) + 'px">';
+        html += '<input type="checkbox" data-mid="' + escapeHtml(group.mid) + '" data-path="' + escapeHtml(file.path) + '"' + (checked ? " checked" : "") + ">";
+        html += '<span>' + escapeHtml(parts[parts.length - 1] || file.path) + '</span><span class="file-tree-size">' + escapeHtml(humanBytes(file.size)) + "</span>";
+        html += "</label>";
+      });
+
+      html += "</div>";
+      return html;
+    }
+
+    function updateFileSelectionSummary(total) {
+      var checked = el.modalBody.querySelectorAll(".file-tree-file input:checked").length;
+      var summary = document.getElementById("fileSelectionSummary");
+      if (summary) summary.textContent = checked + " / " + total + " file(s) selected";
+    }
+
+    function saveFileSelectionsFromModal(project, groups) {
+      groups.forEach(function (group) {
+        var inputs = Array.from(el.modalBody.querySelectorAll(".file-tree-file input")).filter(function (input) {
+          return input.dataset.mid === group.mid;
+        });
+        var checked = inputs.filter(function (input) { return input.checked; }).map(function (input) { return input.dataset.path; });
+        var key = selectionKey(project, group.mid);
+        if (checked.length === group.files.length) state.fileSelections.delete(key);
+        else state.fileSelections.set(key, new Set(checked));
+      });
     }
 
     async function downloadData() {
@@ -1575,21 +1744,26 @@
         updateDownloadProgress(0, 0, "Downloading and Saving");
         var jobs = [];
         var totalFiles = 0;
+        var totalChunks = 0;
         for (var p = 0; p < mids.length; p += 1) {
           if (state.abortAll) break;
           var job = await prepareDownloadJob(project, mids[p]);
           jobs.push(job);
           totalFiles += job.files.length;
+          totalChunks += job.totalChunks;
         }
 
         var completedFiles = 0;
+        var progress = { completedChunks: 0, totalChunks: totalChunks };
         updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
+        updateBundleProgress(progress.completedChunks, progress.totalChunks);
 
         for (var i = 0; i < jobs.length; i += 1) {
           if (state.abortAll) break;
-          completedFiles = await downloadManifestFiles(jobs[i], rootHandle, completedFiles, totalFiles);
+          completedFiles = await downloadManifestFiles(jobs[i], rootHandle, completedFiles, totalFiles, progress);
         }
         if (!state.abortAll) updateDownloadProgress(totalFiles, totalFiles, "Downloading and Saving");
+        if (!state.abortAll) updateBundleProgress(totalChunks, totalChunks);
         log("All download jobs completed or aborted.");
       } catch (error) {
         if (error.name === "AbortError") log("Download aborted.");
@@ -1616,11 +1790,12 @@
         mid: mid,
         base: base,
         files: result.files,
+        totalChunks: result.files.reduce(function (sum, file) { return sum + file.chunks.length; }, 0),
         bundleBase: "https://" + project + ".secure.dyn.riotcdn.net/channels/public/bundles",
       };
     }
 
-    async function downloadManifestFiles(job, rootHandle, completedFiles, totalFiles) {
+    async function downloadManifestFiles(job, rootHandle, completedFiles, totalFiles, progress) {
       var project = job.project;
       var mid = job.mid;
       var base = job.base;
@@ -1633,7 +1808,7 @@
         var file = files[i];
         state.currentController = new AbortController();
         updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
-        var bytes = await downloadFileBytes(file, bundleBase, state.currentController.signal);
+        var bytes = await downloadFileBytes(file, bundleBase, state.currentController.signal, progress);
         await writeToDirectory(rootHandle, [project, base].concat(file.path.split("/")), bytes);
         completedFiles += 1;
         updateDownloadProgress(completedFiles, totalFiles, "Downloading and Saving");
@@ -1645,7 +1820,7 @@
       return completedFiles;
     }
 
-    async function downloadFileBytes(file, bundleBase, signal) {
+    async function downloadFileBytes(file, bundleBase, signal, progress) {
       var parts = [];
       for (var i = 0; i < file.chunks.length; i += 1) {
         var chunk = file.chunks[i];
@@ -1658,6 +1833,10 @@
         });
         if (!response.ok && response.status !== 206) throw new Error("Bundle request failed with HTTP " + response.status);
         var compressed = new Uint8Array(await response.arrayBuffer());
+        if (progress) {
+          progress.completedChunks += 1;
+          updateBundleProgress(progress.completedChunks, progress.totalChunks);
+        }
         parts.push(await RMAN.decompressZstd(compressed, { expectedSize: chunk.uncompressedSize }));
       }
       return concat(parts);
@@ -1671,10 +1850,18 @@
       setStatus((label || "Downloading and Saving") + " " + percent + "%");
     }
 
+    function updateBundleProgress(done, total) {
+      var percent = total > 0 ? Math.round((done / total) * 100) : 0;
+      el.bundleProgressFill.style.width = percent + "%";
+      el.bundleProgressText.textContent = "Fetching bundles " + percent + "%";
+    }
+
     function hideDownloadProgress() {
       el.downloadProgress.classList.remove("visible");
       el.downloadProgressFill.style.width = "0%";
       el.downloadProgressText.textContent = "Downloading and Saving 0%";
+      el.bundleProgressFill.style.width = "0%";
+      el.bundleProgressText.textContent = "Fetching bundles 0%";
     }
 
     async function writeToDirectory(root, pathParts, bytes) {
@@ -1731,6 +1918,43 @@
         return new RegExp(value, "i");
       } catch (error) {
         throw new Error("Invalid file path regex: " + error.message);
+      }
+    }
+
+    async function updateFileFilterNotice() {
+      var value = el.fileFilter.value.trim();
+      state.fileFilterNoticeToken += 1;
+      var token = state.fileFilterNoticeToken;
+      var project = state.selectedProject;
+      var mids = selectedManifestIds();
+      var hasPreviewFilter = Boolean(project && mids.some(function (mid) {
+        return state.fileSelections.has(selectionKey(project, mid));
+      }));
+
+      if (!value && !hasPreviewFilter) {
+        el.fileFilterNotice.textContent = "";
+        return;
+      }
+
+      if (!project || !mids.length) {
+        el.fileFilterNotice.textContent = "(0) files selected";
+        return;
+      }
+
+      el.fileFilterNotice.textContent = "Counting files...";
+      try {
+        var total = 0;
+        for (var i = 0; i < mids.length; i += 1) {
+          var result = await selectedFilesForManifest(project, mids[i]);
+          total += result.files.length;
+        }
+        if (state.fileFilterNoticeToken === token) {
+          el.fileFilterNotice.textContent = "(" + total + ") file" + (total === 1 ? "" : "s") + " selected";
+        }
+      } catch (error) {
+        if (state.fileFilterNoticeToken === token) {
+          el.fileFilterNotice.textContent = error.message;
+        }
       }
     }
 
@@ -1895,6 +2119,10 @@
 
     function lower(value) {
       return String(value).toLowerCase();
+    }
+
+    function selectionKey(project, mid) {
+      return project + "/" + mid;
     }
 
     function naturalSort(a, b) {
