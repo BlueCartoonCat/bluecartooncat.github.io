@@ -749,6 +749,7 @@
         <div class="panel-head">
           <h2>Files</h2>
           <div class="toolbar">
+            <button id="deselectAllBtn" type="button" disabled>Deselect Everything</button>
             <button id="downloadSelectedBtn" class="primary" type="button" disabled>Download Selected</button>
           </div>
         </div>
@@ -856,7 +857,7 @@
       "downloadModal", "downloadCancelBtn", "downloadOverallProgress", "downloadOverallText", "downloadRows",
       "indexProgress", "bundleLoadText", "manifestProgress", "manifestProgressText",
       "manifestWriteText", "fileSearch", "filePageText", "fileRows", "breadcrumbs", "selectionSummary",
-      "fileSearchBtn", "fileSearchCancelBtn", "filePrevPage", "fileNextPage", "downloadSelectedBtn", "selectCurrentFolder",
+      "fileSearchBtn", "fileSearchCancelBtn", "filePrevPage", "fileNextPage", "deselectAllBtn", "downloadSelectedBtn", "selectCurrentFolder",
       "rangeOffset", "rangeLength", "rangeBtn", "hexOut", "chunkSearch", "searchBtn",
       "prevPage", "nextPage", "pageText", "chunkRows", "selId", "selOffset", "selComp",
       "selUncomp", "fetchChunkBtn", "decompressBtn", "downloadBtn", "chunkPreview", "log",
@@ -1531,6 +1532,7 @@
         ? summary.count.toLocaleString() + " files selected · " + formatBytes(summary.size)
         : "No files selected.";
       els.downloadSelectedBtn.disabled = summary.count === 0;
+      els.deselectAllBtn.disabled = summary.count === 0;
       const current = getNodeByPath(state.currentPath);
       els.selectCurrentFolder.disabled = !current || current.fileCount === 0;
       els.selectCurrentFolder.checked = isNodeFullySelected(current);
@@ -3755,6 +3757,10 @@
     });
     els.filePrevPage.addEventListener("click", () => runTask("Searching files", () => gotoSearchPage(state.searchPage - 1)));
     els.fileNextPage.addEventListener("click", () => runTask("Searching files", () => gotoSearchPage(state.searchPage + 1)));
+    els.deselectAllBtn.addEventListener("click", () => {
+      state.selectedKeys.clear();
+      renderFilesystem();
+    });
     els.downloadSelectedBtn.addEventListener("click", () => runTask("Downloading selected", downloadSelected));
     els.downloadCancelBtn.addEventListener("click", () => {
       if (state.downloadTask && state.downloadTask.running) {
@@ -3805,7 +3811,7 @@
         if (error && /File System Access API/i.test(error.message || "")) return;
         if (error && /SQLite persistent OPFS/i.test(error.message || "")) {
           els.startupModal.classList.remove("visible");
-          els.opfsBannerText.textContent = error.message + ". Serve this page with COOP/COEP headers or use a browser/origin where SQLite OPFS is available. If you have any other tabs open with this page, please close them.";
+          els.opfsBannerText.textContent = error.message + ". Serve this page with COOP/COEP headers or use a browser/origin where SQLite OPFS is available.";
           els.opfsBanner.classList.add("visible");
           return;
         }
