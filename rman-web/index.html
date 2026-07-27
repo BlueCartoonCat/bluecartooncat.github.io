@@ -668,10 +668,12 @@
       <div class="brand"><span class="brand-mark" title="RMAN Web" aria-label="RMAN Web">RM</span></div>
       <button id="updateCatalog" class="primary">Update Catalog</button>
       <button id="loadLocalCatalog">Load Local Catalog</button>
+      <button id="fetchManifestByUrl">Fetch Manifest by URL</button>
       <button id="selectAll">Select All</button>
       <button id="clearSelections">Clear</button>
       <button id="downloadManifests">Download Manifest(s)</button>
       <button id="downloadData" class="primary">Download Data</button>
+      <button id="compareBundles" disabled>Compare Bundles</button>
       <button id="abortDownload" class="danger">Abort</button>
       <span class="toolbar-spacer"></span>
       <div class="toolbar-right">
@@ -684,6 +686,27 @@
       </div>
       <input id="catalogFile" type="file" accept=".json,application/json" hidden>
       <input id="settingsFile" type="file" accept=".json,application/json" hidden>
+      <dialog id="fetchManifestDialog">
+        <div class="panel-head"><div class="panel-title">Fetch Manifest by URL</div></div>
+        <div class="dialog-body">
+          <div class="field">
+            <label>Manifest URL</label>
+            <input id="manifestUrlInput" placeholder="https://project.secure.dyn.riotcdn.net/channels/public/releases/xxx.manifest">
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button id="fetchManifestCancel">Cancel</button>
+          <button id="fetchManifestConfirm" class="primary">Fetch</button>
+        </div>
+      </dialog>
+      <dialog id="compareDialog">
+        <div class="panel-head"><div class="panel-title">Compare Bundles</div></div>
+        <div id="compareBody" class="dialog-body"></div>
+        <div class="dialog-actions">
+          <button id="compareCancel">Close</button>
+          <button id="compareExport" class="primary">Export Diff</button>
+        </div>
+      </dialog>
     </header>
 
     <main class="layout">
@@ -856,14 +879,14 @@
 
     function cacheElements() {
       [
-        "updateCatalog", "loadLocalCatalog", "catalogFile", "settings", "settingsFile",
+        "updateCatalog", "loadLocalCatalog", "fetchManifestByUrl", "catalogFile", "settings", "settingsFile",
         "credits", "selectAll", "clearSelections", "downloadManifests", "downloadData", "abortDownload", "themeToggle", "projectCount",
         "projectSearch", "projectList", "entryCount", "filterVersion", "filterYearMulti", "filterSize",
         "filterPlatformMulti", "filterRealmsMulti", "filterArtifactMulti", "clearFilters", "entryBody", "pageSize",
         "prevPage", "nextPage", "pageInput", "selectionCount", "log", "selectedProjectLabel",
         "cacheManifestCount", "cacheSize", "bundleCache", "refreshCache", "clearCache", "languageChoices",
         "fileFilter", "fileFilterNotice", "estimateSize", "previewFiles", "downloadProgress", "downloadProgressText", "downloadProgressFill", "bundleProgressText", "bundleProgressFill", "estimateOutput", "notes", "status", "modal",
-        "modalTitle", "modalBody", "modalCancel", "modalConfirm",
+        "modalTitle", "modalBody", "modalCancel", "modalConfirm", "fetchManifestDialog", "manifestUrlInput", "fetchManifestCancel", "fetchManifestConfirm", "compareBundles", "compareDialog", "compareBody", "compareCancel", "compareExport",
       ].forEach(function get(id) {
         el[id] = document.getElementById(id);
       });
@@ -873,6 +896,15 @@
       el.updateCatalog.addEventListener("click", updateCatalog);
       el.loadLocalCatalog.addEventListener("click", function () { el.catalogFile.click(); });
       el.catalogFile.addEventListener("change", loadLocalCatalog);
+      el.fetchManifestByUrl.addEventListener("click", showFetchManifestDialog);
+      el.fetchManifestCancel.addEventListener("click", function () { el.fetchManifestDialog.close("cancel"); });
+      el.fetchManifestConfirm.addEventListener("click", fetchManifestByUrl);
+      el.manifestUrlInput.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") fetchManifestByUrl();
+      });
+      el.compareBundles.addEventListener("click", compareSelectedBundles);
+      el.compareCancel.addEventListener("click", function () { el.compareDialog.close("cancel"); });
+      el.compareExport.addEventListener("click", exportCompareDiff);
       el.settings.addEventListener("click", showSettings);
       el.settingsFile.addEventListener("change", importSettings);
       el.credits.addEventListener("click", showCredits);
@@ -1037,6 +1069,158 @@
       } finally {
         el.catalogFile.value = "";
       }
+    }
+
+    function showFetchManifestDialog() {
+      el.manifestUrlInput.value = "";
+      el.fetchManifestDialog.showModal();
+      el.manifestUrlInput.focus();
+    }
+
+    async function fetchManifestByUrl() {
+      var url = el.manifestUrlInput.value.trim();
+      if (!url) {
+        el.fetchManifestDialog.close("empty-url");
+        return;
+      }
+
+      el.fetchManifestDialog.close("fetching");
+      setBusy(true);
+
+      try {
+        log("Fetching manifest from URL: " + url);
+        var controller = state.currentController || new AbortController();
+        var response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        var bytes = new Uint8Array(await response.arrayBuffer());
+        var parsed = await RMAN.parse(bytes);
+
+        var match = url.match(/\/([^\/]+)\.manifest$/);
+        var mid = match ? match[1] : "unknown";
+        var project = "Fetched";
+
+        if (!state.catalog[project]) {
+          state.catalog[project] = {};
+        }
+        state.catalog[project][mid] = {
+          version: "",
+          timestamp: new Date().toISOString(),
+          size: bytes.byteLength || bytes.length || 0,
+          platforms: [],
+          realms: [],
+          artifact_type: "",
+        };
+
+        var key = project + "/" + mid;
+        await idbPut("manifests", key, bytes);
+        state.manifests.set(key, parsed);
+        state.manifestMeta.set(key, bytes.byteLength || bytes.length || 0);
+
+        localStorage.setItem("rman-browser-catalog", JSON.stringify(state.catalog));
+        renderProjects();
+        selectProject(project);
+
+        log("Cached manifest " + mid + " under project " + project);
+        await refreshCacheInfo();
+        populatePage();
+      } catch (error) {
+        showMessage("Fetch failed", error.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function compareSelectedBundles() {
+      var mids = selectedManifestIds();
+      if (mids.length !== 2) return;
+
+      var project = state.selectedProject;
+      setBusy(true);
+
+      try {
+        log("Comparing manifests: " + mids[0] + " vs " + mids[1]);
+        var result1 = await selectedFilesForManifest(project, mids[0]);
+        var result2 = await selectedFilesForManifest(project, mids[1]);
+
+        var files1 = new Map(result1.files.map(function (f) { return [f.path, f]; }));
+        var files2 = new Map(result2.files.map(function (f) { return [f.path, f]; }));
+
+        var onlyIn1 = [];
+        var onlyIn2 = [];
+        var inBoth = [];
+
+        files1.forEach(function (f, path) {
+          if (files2.has(path)) inBoth.push({ path: path, file1: f, file2: files2.get(path) });
+          else onlyIn1.push(f);
+        });
+
+        files2.forEach(function (f, path) {
+          if (!files1.has(path)) onlyIn2.push(f);
+        });
+
+        var changes = inBoth.filter(function (item) {
+          return Number(item.file1.size || 0) !== Number(item.file2.size || 0) ||
+                 JSON.stringify(item.file1.tags || []) !== JSON.stringify(item.file2.tags || []);
+        });
+
+        showCompareDialog(mids[0], mids[1], onlyIn1, onlyIn2, changes, inBoth.length - changes.length);
+      } catch (error) {
+        showMessage("Compare failed", error.message);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function showCompareDialog(mid1, mid2, onlyIn1, onlyIn2, changes, unchanged) {
+      var html =
+        '<div class="stats">' +
+        '<div class="stat"><span class="subtle">Only in ' + escapeHtml(mid1) + '</span><b>' + onlyIn1.length + '</b></div>' +
+        '<div class="stat"><span class="subtle">Only in ' + escapeHtml(mid2) + '</span><b>' + onlyIn2.length + '</b></div>' +
+        '<div class="stat"><span class="subtle">Changed</span><b>' + changes.length + '</b></div>' +
+        '<div class="stat"><span class="subtle">Unchanged</span><b>' + unchanged + '</b></div>' +
+        '</div>';
+
+      html += '<div class="file-list" style="margin-top:10px">';
+
+      if (onlyIn1.length) {
+        html += '<div class="file-tree-title">Only in ' + escapeHtml(mid1) + '</div>';
+        onlyIn1.forEach(function (f) {
+          html += '<div class="file-tree-file">' + escapeHtml(f.path) + ' <span class="file-tree-size">' + escapeHtml(humanBytes(f.size)) + '</span></div>';
+        });
+      }
+
+      if (onlyIn2.length) {
+        html += '<div class="file-tree-title" style="margin-top:8px">Only in ' + escapeHtml(mid2) + '</div>';
+        onlyIn2.forEach(function (f) {
+          html += '<div class="file-tree-file">' + escapeHtml(f.path) + ' <span class="file-tree-size">' + escapeHtml(humanBytes(f.size)) + '</span></div>';
+        });
+      }
+
+      if (changes.length) {
+        html += '<div class="file-tree-title" style="margin-top:8px">Changed files</div>';
+        changes.forEach(function (item) {
+          var size1 = humanBytes(item.file1.size);
+          var size2 = humanBytes(item.file2.size);
+          var sizeDiff = size1 !== size2 ? ' <span class="subtle">(' + escapeHtml(size1) + ' → ' + escapeHtml(size2) + ')</span>' : '';
+          html += '<div class="file-tree-file">' + escapeHtml(item.path) + sizeDiff + '</div>';
+        });
+      }
+
+      html += '</div>';
+
+      el.compareBody.innerHTML = html;
+      el.compareDialog.showModal();
+    }
+
+    function exportCompareDiff() {
+      var mids = selectedManifestIds();
+      if (mids.length !== 2) return;
+
+      var project = state.selectedProject;
+      var body = el.compareBody;
+      var text = "Compare: " + mids[0] + " vs " + mids[1] + "\n\n" + body.innerText;
+      saveTextFile(text, "compare-" + mids[0] + "-vs-" + mids[1] + ".txt", "text/plain");
+      log("Diff exported.");
     }
 
     function showSettings() {
@@ -2175,7 +2359,7 @@
 
     function setBusy(busy) {
       state.busy = busy;
-      ["updateCatalog", "loadLocalCatalog", "settings", "downloadManifests"].forEach(function (id) {
+      ["updateCatalog", "loadLocalCatalog", "fetchManifestByUrl", "settings", "downloadManifests", "compareBundles"].forEach(function (id) {
         el[id].disabled = busy;
       });
       updateActionAvailability();
@@ -2199,6 +2383,8 @@
       Array.from(el.languageChoices.querySelectorAll("input")).forEach(function (input) {
         input.disabled = gatedDisabled;
       });
+
+      el.compareBundles.disabled = mids.length !== 2;
     }
 
     function selectedManifestsCached(mids) {
