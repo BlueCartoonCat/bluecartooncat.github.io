@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assets</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --line: #e5e7eb;
+      --text: #111827;
+      --sub: #6b7280;
+      --good: #0f766e;
+      --warn: #b45309;
+      --bad: #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .dropzone {
+      border: 1px dashed #9ca3af;
+      border-radius: 8px;
+      background: #fafafa;
+      padding: 16px;
+      text-align: center;
+      transition: 120ms ease;
+      cursor: pointer;
+      margin-bottom: 16px;
+      color: #374151;
+      font-size: 0.95rem;
+    }
+
+    .dropzone.empty {
+      min-height: 46vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.05rem;
+    }
+
+    .dropzone.dragover {
+      border-color: #0f766e;
+      background: #f0fdfa;
+    }
+
+    .images {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+
+    .imgbox {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fff;
+    }
+
+    .imgbox img {
+      width: 100%;
+      height: 110px;
+      object-fit: contain;
+      display: block;
+      background: #f9fafb;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .imgmeta {
+      font-size: 0.78rem;
+      color: #374151;
+      word-break: break-word;
+    }
+
+    .imgpath {
+      font-size: 0.74rem;
+      color: #6b7280;
+      word-break: break-all;
+      margin-top: 2px;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 0.88rem;
+      color: var(--sub);
+    }
+
+    .status.ok { color: var(--good); }
+    .status.warn { color: var(--warn); }
+    .status.err { color: var(--bad); }
+
+    .small {
+      color: var(--sub);
+      font-size: 0.82rem;
+      margin-top: 6px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="dropzone" class="dropzone empty" role="button" tabindex="0">
+      Drop .swf here or click to choose
+      <input id="fileInput" type="file" accept=".swf" style="display:none" />
+    </div>
+
+    <div id="images" class="images"></div>
+
+    <div id="status" class="status">Ready.</div>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const statusEl = document.getElementById("status");
+    const imagesEl = document.getElementById("images");
+
+    const TAG_NAMES = {
+      0: "End",
+      1: "ShowFrame",
+      9: "SetBackgroundColor",
+      12: "DoAction",
+      20: "DefineBitsLossless",
+      21: "DefineBitsJPEG2",
+      35: "DefineBitsJPEG3",
+      36: "DefineBitsLossless2",
+      39: "DefineSprite",
+      43: "FrameLabel",
+      56: "ExportAssets",
+      57: "ImportAssets",
+      58: "EnableDebugger",
+      59: "DoInitAction",
+      60: "DefineVideoStream",
+      69: "FileAttributes",
+      76: "SymbolClass",
+      82: "DoABC",
+      83: "DefineShape4",
+      86: "DefineSceneAndFrameLabelData",
+      87: "DefineBinaryData",
+      88: "DefineFontName",
+      89: "StartSound2",
+      90: "DefineBitsJPEG4",
+      91: "DefineFont4"
+    };
+
+    let objectUrls = [];
+
+    function setStatus(text, kind = "") {
+      statusEl.textContent = text;
+      statusEl.className = `status ${kind}`.trim();
+    }
+
+    function setDropzoneLoaded(isLoaded) {
+      dropzone.classList.toggle("empty", !isLoaded);
+    }
+
+    function clearAll() {
+      for (const u of objectUrls) {
+        URL.revokeObjectURL(u);
+      }
+      objectUrls = [];
+      imagesEl.innerHTML = "";
+      setStatus("Ready.");
+    }
+
+    async function maybeInflateBody(signature, bytes) {
+      if (signature === "FWS") {
+        return bytes.slice(8);
+      }
+      if (signature === "CWS") {
+        const compressed = bytes.slice(8);
+        if (typeof DecompressionStream === "undefined") {
+          throw new Error("CWS requires browser support for DecompressionStream('deflate').");
+        }
+        const ds = new DecompressionStream("deflate");
+        const stream = new Blob([compressed]).stream().pipeThrough(ds);
+        const buf = await new Response(stream).arrayBuffer();
+        return new Uint8Array(buf);
+      }
+      if (signature === "ZWS") {
+        throw new Error("ZWS (LZMA) SWF is not supported in this single-file build.");
+      }
+      throw new Error("Unknown SWF signature.");
+    }
+
+    function readUI16(data, offset) {
+      return data[offset] | (data[offset + 1] << 8);
+    }
+
+    function readUI32(data, offset) {
+      return (data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24)) >>> 0;
+    }
+
+    function readNullTerminatedString(data, offset) {
+      let end = offset;
+      while (end < data.length && data[end] !== 0) end++;
+      const value = new TextDecoder("utf-8", { fatal: false }).decode(data.slice(offset, end));
+      return { value, next: Math.min(end + 1, data.length) };
+    }
+
+    class BitReader {
+      constructor(data, offset = 0) {
+        this.data = data;
+        this.bytePos = offset;
+        this.bitPos = 0;
+      }
+
+      readBits(n) {
+        let v = 0;
+        for (let i = 0; i < n; i++) {
+          if (this.bytePos >= this.data.length) return v;
+          const bit = (this.data[this.bytePos] >> (7 - this.bitPos)) & 1;
+          v = (v << 1) | bit;
+          this.bitPos++;
+          if (this.bitPos === 8) {
+            this.bitPos = 0;
+            this.bytePos++;
+          }
+        }
+        return v;
+      }
+
+      align() {
+        if (this.bitPos !== 0) {
+          this.bitPos = 0;
+          this.bytePos++;
+        }
+      }
+    }
+
+    function parseRectAndFrame(body) {
+      const br = new BitReader(body, 0);
+      const nbits = br.readBits(5);
+      br.readBits(nbits);
+      br.readBits(nbits);
+      br.readBits(nbits);
+      br.readBits(nbits);
+      br.align();
+      const frameRateFixed8 = readUI16(body, br.bytePos);
+      const frameCount = readUI16(body, br.bytePos + 2);
+      return {
+        tagsOffset: br.bytePos + 4,
+        frameRate: (frameRateFixed8 >> 8) + ((frameRateFixed8 & 0xff) / 256),
+        frameCount
+      };
+    }
+
+    function parseTags(body, offset) {
+      const tags = [];
+      let pos = offset;
+      while (pos + 2 <= body.length) {
+        const rec = readUI16(body, pos);
+        pos += 2;
+        const code = rec >> 6;
+        let len = rec & 0x3f;
+        if (len === 0x3f) {
+          if (pos + 4 > body.length) break;
+          len = readUI32(body, pos);
+          pos += 4;
+        }
+        if (pos + len > body.length) {
+          break;
+        }
+        tags.push({ code, name: TAG_NAMES[code] || `Tag${code}`, offset: pos, length: len });
+        pos += len;
+        if (code === 0) break;
+      }
+      return tags;
+    }
+
+    class ByteReader {
+      constructor(data, offset = 0, length = data.length - offset) {
+        this.data = data;
+        this.pos = offset;
+        this.end = offset + length;
+      }
+      readU8() { return this.data[this.pos++]; }
+      readU16() {
+        const v = readUI16(this.data, this.pos);
+        this.pos += 2;
+        return v;
+      }
+      readU32() {
+        const v = readUI32(this.data, this.pos);
+        this.pos += 4;
+        return v;
+      }
+      readBytes(n) {
+        const out = this.data.slice(this.pos, this.pos + n);
+        this.pos += n;
+        return out;
+      }
+      skip(n) { this.pos = Math.min(this.pos + n, this.end); }
+    }
+
+    function bytesToBlobUrl(bytes, type) {
+      const url = URL.createObjectURL(new Blob([bytes], { type }));
+      objectUrls.push(url);
+      return url;
+    }
+
+    function renderImages(images) {
+      imagesEl.innerHTML = "";
+      if (!images.length) {
+        imagesEl.innerHTML = `<div class="small">No image assets found.</div>`;
+        return;
+      }
+      for (const img of images) {
+        const div = document.createElement("div");
+        div.className = "imgbox";
+        div.innerHTML = `
+          <img src="${img.url}" alt="${escapeHtml(img.label)}" />
+          <div class="imgpath">${escapeHtml(img.path || "")}</div>
+        `;
+        imagesEl.appendChild(div);
+      }
+    }
+
+    function escapeHtml(v) {
+      return String(v)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    async function extractLosslessImage(tagCode, payload) {
+      const r = new ByteReader(payload);
+      const characterId = r.readU16();
+      const format = r.readU8();
+      const width = r.readU16();
+      const height = r.readU16();
+      let colorTableSize = 0;
+      if (format === 3) {
+        colorTableSize = r.readU8() + 1;
+      }
+      const compressed = r.readBytes(r.end - r.pos);
+
+      if (typeof DecompressionStream === "undefined") return null;
+
+      const ds = new DecompressionStream("deflate");
+      const stream = new Blob([compressed]).stream().pipeThrough(ds);
+      const raw = new Uint8Array(await new Response(stream).arrayBuffer());
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      const img = ctx.createImageData(width, height);
+
+      if (format === 5) {
+        // Format 5 is 32-bit pixel data; Lossless2 uses ARGB, Lossless often RGBX.
+        const bytesPerPixel = 4;
+        const expected = width * height * bytesPerPixel;
+        const src = raw.slice(0, expected);
+        for (let i = 0, p = 0; i + 3 < src.length && p + 3 < img.data.length; i += 4, p += 4) {
+          const a = src[i + 0];
+          const r8 = src[i + 1];
+          const g8 = src[i + 2];
+          const b8 = src[i + 3];
+          if (tagCode === 36) {
+            img.data[p + 0] = r8;
+            img.data[p + 1] = g8;
+            img.data[p + 2] = b8;
+            img.data[p + 3] = a;
+          } else {
+            img.data[p + 0] = r8;
+            img.data[p + 1] = g8;
+            img.data[p + 2] = b8;
+            img.data[p + 3] = 255;
+          }
+        }
+      } else if (format === 3) {
+        // Colormapped image.
+        const tableSizeBytes = colorTableSize * (tagCode === 36 ? 4 : 3);
+        const table = raw.slice(0, tableSizeBytes);
+        const rowBytes = (width + 3) & ~3;
+        let srcPos = tableSizeBytes;
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = raw[srcPos + x];
+            const o = idx * (tagCode === 36 ? 4 : 3);
+            const p = (y * width + x) * 4;
+            img.data[p + 0] = table[o + 0] || 0;
+            img.data[p + 1] = table[o + 1] || 0;
+            img.data[p + 2] = table[o + 2] || 0;
+            img.data[p + 3] = tagCode === 36 ? (table[o + 3] ?? 255) : 255;
+          }
+          srcPos += rowBytes;
+        }
+      } else {
+        return null;
+      }
+
+      ctx.putImageData(img, 0, 0);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) return null;
+      const url = URL.createObjectURL(blob);
+      objectUrls.push(url);
+      return { characterId, url, type: "image/png", width, height, format };
+    }
+
+    function isJpeg(data) {
+      return data.length > 2 && data[0] === 0xff && data[1] === 0xd8;
+    }
+
+    function isPng(data) {
+      return data.length > 8 && data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47;
+    }
+
+    function trimJpegTables(bytes) {
+      // Some SWF JPEG payloads prepend JFIF tables. Use first SOI marker.
+      for (let i = 0; i + 1 < bytes.length; i++) {
+        if (bytes[i] === 0xff && bytes[i + 1] === 0xd8) {
+          return bytes.slice(i);
+        }
+      }
+      return bytes;
+    }
+
+    function extFromMime(type) {
+      if (type === "image/png") return "png";
+      if (type === "image/jpeg") return "jpg";
+      return "bin";
+    }
+
+    function sanitizeAssetName(name) {
+      return String(name)
+        .replaceAll("\\", "/")
+        .replace(/^\/+/, "")
+        .replace(/[<>:"|?*\x00-\x1f]/g, "_")
+        .trim();
+    }
+
+    function appendSuffixBeforeExt(path, n) {
+      const idx = path.lastIndexOf(".");
+      if (idx <= 0) return `${path}_${n}`;
+      return `${path.slice(0, idx)}_${n}${path.slice(idx)}`;
+    }
+
+    function buildUniquePath(rawPath, used) {
+      let out = rawPath;
+      let i = 2;
+      while (used.has(out)) {
+        out = appendSuffixBeforeExt(rawPath, i);
+        i++;
+      }
+      used.add(out);
+      return out;
+    }
+
+    function collectCharacterNames(tags, body) {
+      const names = new Map();
+      for (const tag of tags) {
+        if (tag.code !== 56 && tag.code !== 76) continue;
+        const payload = body.slice(tag.offset, tag.offset + tag.length);
+        const r = new ByteReader(payload);
+        try {
+          const n = r.readU16();
+          for (let i = 0; i < n && r.pos < r.end; i++) {
+            const characterId = r.readU16();
+            const nameRec = readNullTerminatedString(payload, r.pos);
+            r.pos = nameRec.next;
+            if (!characterId || !nameRec.value) continue;
+
+            // Prefer explicit ExportAssets naming over SymbolClass entries.
+            if (tag.code === 56 || !names.has(characterId)) {
+              names.set(characterId, nameRec.value);
+            }
+          }
+        } catch {
+          // Ignore malformed name table tags and continue parsing assets.
+        }
+      }
+      return names;
+    }
+
+    async function parseSWFFile(file) {
+      clearAll();
+      setStatus(`Reading ${file.name} ...`);
+
+      const raw = new Uint8Array(await file.arrayBuffer());
+      if (raw.length < 9) throw new Error("File too small to be a SWF.");
+
+      const signature = String.fromCharCode(raw[0], raw[1], raw[2]);
+      const body = await maybeInflateBody(signature, raw);
+      const frame = parseRectAndFrame(body);
+      const tags = parseTags(body, frame.tagsOffset);
+      const baseName = file.name.replace(/\.[^.]+$/, "") || file.name;
+      const characterNames = collectCharacterNames(tags, body);
+      const usedPaths = new Set();
+
+      const images = [];
+
+      for (const tag of tags) {
+        const payload = body.slice(tag.offset, tag.offset + tag.length);
+
+        if (tag.code === 21 || tag.code === 35 || tag.code === 90) {
+          const r = new ByteReader(payload);
+          const characterId = r.readU16();
+          const realNameRaw = characterNames.get(characterId);
+
+          if (tag.code === 21) {
+            let imgData = trimJpegTables(r.readBytes(r.end - r.pos));
+            const type = isPng(imgData) ? "image/png" : (isJpeg(imgData) ? "image/jpeg" : "application/octet-stream");
+            const url = bytesToBlobUrl(imgData, type);
+            const realName = sanitizeAssetName(realNameRaw || "");
+            const namedPath = realName ? (/[A-Za-z0-9]+$/.test(realName.split("/").pop() || "") && /\.[A-Za-z0-9]{2,5}$/.test(realName) ? realName : `${realName}.${extFromMime(type)}`) : "";
+            const fallbackPath = `${baseName}/images/char_${characterId}.${extFromMime(type)}`;
+            const assetPath = buildUniquePath(namedPath || fallbackPath, usedPaths);
+            images.push({
+              url,
+              type,
+              label: `Char ${characterId} - ${tag.name}`,
+              path: assetPath
+            });
+          } else {
+            const alphaDataOffset = r.readU32();
+            const imgDataRaw = r.readBytes(alphaDataOffset);
+            const imgData = trimJpegTables(imgDataRaw);
+            const type = isPng(imgData) ? "image/png" : (isJpeg(imgData) ? "image/jpeg" : "application/octet-stream");
+            const url = bytesToBlobUrl(imgData, type);
+            const realName = sanitizeAssetName(realNameRaw || "");
+            const namedPath = realName ? (/[A-Za-z0-9]+$/.test(realName.split("/").pop() || "") && /\.[A-Za-z0-9]{2,5}$/.test(realName) ? realName : `${realName}.${extFromMime(type)}`) : "";
+            const fallbackPath = `${baseName}/images/char_${characterId}.${extFromMime(type)}`;
+            const assetPath = buildUniquePath(namedPath || fallbackPath, usedPaths);
+            images.push({
+              url,
+              type,
+              label: `Char ${characterId} - ${tag.name}`,
+              path: assetPath
+            });
+          }
+        }
+
+        if (tag.code === 20 || tag.code === 36) {
+          try {
+            const out = await extractLosslessImage(tag.code, payload);
+            if (out) {
+              const realName = sanitizeAssetName(characterNames.get(out.characterId) || "");
+              const namedPath = realName ? (/[A-Za-z0-9]+$/.test(realName.split("/").pop() || "") && /\.[A-Za-z0-9]{2,5}$/.test(realName) ? realName : `${realName}.png`) : "";
+              const fallbackPath = `${baseName}/images/char_${out.characterId}.png`;
+              const assetPath = buildUniquePath(namedPath || fallbackPath, usedPaths);
+              images.push({
+                url: out.url,
+                type: out.type,
+                label: `Char ${out.characterId} - ${tag.name} ${out.width}x${out.height}`,
+                path: assetPath
+              });
+            }
+          } catch {
+            // Keep parser resilient for uncommon bitmap formats.
+          }
+        }
+
+      }
+
+      renderImages(images);
+      setDropzoneLoaded(true);
+      setStatus(`${file.name}: ${images.length} asset${images.length === 1 ? "" : "s"}`, "ok");
+    }
+
+    async function handleFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".swf")) {
+        setStatus("Please drop a .swf file.", "warn");
+        return;
+      }
+      try {
+        setDropzoneLoaded(true);
+        await parseSWFFile(file);
+      } catch (err) {
+        setStatus(`Error: ${err.message || String(err)}`, "err");
+      }
+    }
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener("change", async () => {
+      const [file] = fileInput.files || [];
+      await handleFile(file);
+      fileInput.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach((evt) => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add("dragover");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((evt) => {
+      dropzone.addEventListener(evt, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove("dragover");
+      });
+    });
+
+    dropzone.addEventListener("drop", async (e) => {
+      const file = e.dataTransfer?.files?.[0];
+      await handleFile(file);
+    });
+  </script>
+</body>
+</html>
