@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Laxorigin Web</title>
+  <title>RADS Web</title>
   <style>
     :root {
       color-scheme: light;
@@ -287,6 +287,17 @@
       gap: 0.5rem;
     }
 
+    .mode-toggle {
+      min-height: 2.25rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
     .settings-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -548,7 +559,7 @@
 <body>
   <div class="shell">
     <header>
-      <h1>Laxorigin Web</h1>
+      <h1>RADS Web</h1>
       <div class="header-actions">
         <div class="status sr-only"><span id="statusDot" class="dot"></span><span id="statusText">Idle</span></div>
         <button id="themeBtn" class="topbar-button icon" type="button" title="Toggle theme" aria-label="Toggle theme"></button>
@@ -759,6 +770,7 @@
               <input id="fileSearch" placeholder="DATA, .wad, League of Legends.exe" disabled>
             </label>
             <div class="search-actions">
+              <label class="mode-toggle"><input id="uniqueVariantSearch" type="checkbox" disabled> Unique variant search</label>
               <button id="fileSearchBtn" type="button" disabled>Search</button>
               <button id="fileSearchCancelBtn" type="button" disabled>Cancel</button>
             </div>
@@ -803,15 +815,15 @@
     const RCHUNK_SIZE = 16n;
     const PAGE_SIZE = 100;
     const FILE_PAGE_SIZE = 100;
-    const RADS_BUNDLE_URL = "https://archive.org/download/league-of-legends-legacy-patch-system-conversions/laxorigin1/Bundles/laxorigin1.bundle";
-    const RADS_MANIFEST_URL = "https://archive.org/download/league-of-legends-legacy-patch-system-conversions/laxorigin1/Manifests/laxorigin1.json.zstd";
+    const RADS_BUNDLE_URL = "https://archive.org/download/league-of-legends-legacy-patch-system-conversions/RADS/Bundles/RADS.bundle";
+    const RADS_MANIFEST_URL = "https://archive.org/download/league-of-legends-legacy-patch-system-conversions/RADS/Manifests/RADS.json.zstd";
     const DEFAULT_FILE_CONCURRENCY = 2;
     const DEFAULT_CHUNK_CONCURRENCY = 4;
-    const CACHE_DB = "laxorigin1-archive-explorer-cache";
+    const CACHE_DB = "rads-archive-explorer-cache";
     const CACHE_STORE = "files";
     const MANIFEST_FILE_STORE = "manifestFiles";
-    const MANIFEST_CACHE_KEY = "manifest:laxorigin1.json.zstd";
-    const PARSED_MANIFEST_META_KEY = "manifest-files:laxorigin1.json.zstd";
+    const MANIFEST_CACHE_KEY = "manifest:RADS.json.zstd";
+    const PARSED_MANIFEST_META_KEY = "manifest-files:RADS.json.zstd";
     const SQLITE_WASM_URL = "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/index.mjs";
 
     const els = {};
@@ -826,6 +838,7 @@
       searchRows: null,
       searchTotal: 0,
       searchPage: 0,
+      searchMode: "path",
       searchToken: 0,
       searchBusy: false,
       renderToken: 0,
@@ -857,7 +870,7 @@
       "downloadModal", "downloadCancelBtn", "downloadOverallProgress", "downloadOverallText", "downloadRows",
       "indexProgress", "bundleLoadText", "manifestProgress", "manifestProgressText",
       "manifestWriteText", "fileSearch", "filePageText", "fileRows", "breadcrumbs", "selectionSummary",
-      "fileSearchBtn", "fileSearchCancelBtn", "filePrevPage", "fileNextPage", "deselectAllBtn", "downloadSelectedBtn", "selectCurrentFolder",
+      "uniqueVariantSearch", "fileSearchBtn", "fileSearchCancelBtn", "filePrevPage", "fileNextPage", "deselectAllBtn", "downloadSelectedBtn", "selectCurrentFolder",
       "rangeOffset", "rangeLength", "rangeBtn", "hexOut", "chunkSearch", "searchBtn",
       "prevPage", "nextPage", "pageText", "chunkRows", "selId", "selOffset", "selComp",
       "selUncomp", "fetchChunkBtn", "decompressBtn", "downloadBtn", "chunkPreview", "log",
@@ -1107,7 +1120,8 @@
 
     function safeDownloadName(path) {
       const name = String(path).split("/").filter(Boolean).pop() || "rads-file.bin";
-      return name.replace(/[\\/:*?"<>|]+/g, "_");
+      const safeName = name.replace(/[\\/:*?"<>|]+/g, "_");
+      return safeName === "Thumbs.db" ? "thumbdata.bin" : safeName;
     }
 
     function bundleIndexCacheKey(footer) {
@@ -1370,8 +1384,13 @@
       for (const node of rows) {
         const tr = document.createElement("tr");
         const checked = isNodeFullySelected(node) ? "checked" : "";
-        const kind = node.type === "folder" ? "Folder" : "File";
-        const size = node.type === "folder" ? formatBytes(node.size) + " / " + node.fileCount.toLocaleString() + " files" : formatBytes(node.size);
+        const isVariant = query && state.searchMode === "variants" && node.file && node.file.variantFolderCount;
+        const kind = node.type === "folder" ? "Folder" : isVariant ? "Unique variant" : "File";
+        const size = node.type === "folder"
+          ? formatBytes(node.size) + " / " + node.fileCount.toLocaleString() + " files"
+          : isVariant
+            ? formatBytes(node.size) + " / " + node.file.variantFolderCount.toLocaleString() + " folders"
+            : formatBytes(node.size);
         const name = query ? node.path : node.name;
         tr.innerHTML =
           "<td><input type=\"checkbox\" data-key=\"" + escapeHtml(nodeKey(node)) + "\" " + checked + "></td>" +
@@ -1408,7 +1427,7 @@
       }
       els.fileRows.appendChild(frag);
       els.filePageText.textContent = query
-        ? "Search \"" + state.searchQuery + "\" · " + state.searchTotal.toLocaleString() + " matches · page " + (state.searchPage + 1).toLocaleString() + " / " + Math.max(1, Math.ceil(state.searchTotal / FILE_PAGE_SIZE)).toLocaleString()
+        ? (state.searchMode === "variants" ? "Unique variant search" : "Search") + " \"" + state.searchQuery + "\" · " + state.searchTotal.toLocaleString() + " matches · page " + (state.searchPage + 1).toLocaleString() + " / " + Math.max(1, Math.ceil(state.searchTotal / FILE_PAGE_SIZE)).toLocaleString()
         : (state.currentPath || "/") + " · " + rows.length.toLocaleString() + " items.";
       els.filePrevPage.disabled = !query || state.searchPage <= 0;
       els.fileNextPage.disabled = !query || (state.searchPage + 1) * FILE_PAGE_SIZE >= state.searchTotal;
@@ -1426,6 +1445,7 @@
         return;
       }
       state.searchQuery = query;
+      state.searchMode = els.uniqueVariantSearch.checked ? "variants" : "path";
       state.searchRows = [];
       state.searchTotal = 0;
       state.searchPage = 0;
@@ -1453,6 +1473,7 @@
       state.searchRows = null;
       state.searchTotal = 0;
       state.searchPage = 0;
+      state.searchMode = els.uniqueVariantSearch.checked ? "variants" : "path";
       els.fileSearch.value = "";
       els.fileSearchBtn.disabled = !state.fsRoot;
       els.fileSearchCancelBtn.disabled = true;
@@ -1460,7 +1481,9 @@
     }
 
     async function searchFilesystemAsync(query, page, token) {
-      return await searchManifestFiles(query, page, token);
+      return state.searchMode === "variants"
+        ? await searchManifestFileVariants(query, page, token)
+        : await searchManifestFiles(query, page, token);
     }
 
     async function gotoSearchPage(page) {
@@ -1488,6 +1511,7 @@
     function setFileSearchBusy(busy) {
       state.searchBusy = busy;
       els.fileSearch.disabled = busy || !state.fsRoot;
+      els.uniqueVariantSearch.disabled = busy || !state.fsRoot;
       els.fileSearchBtn.disabled = busy || !state.fsRoot;
       els.fileSearchBtn.classList.toggle("loading", busy);
       els.fileSearchBtn.textContent = busy ? "Searching" : "Search";
@@ -1981,6 +2005,22 @@
             const totalRow = selectOne("SELECT COUNT(*) AS total FROM files WHERE lower_path LIKE ? ESCAPE '\\\\'", [like]);
             const files = selectAll("SELECT * FROM files WHERE lower_path LIKE ? ESCAPE '\\\\' ORDER BY path LIMIT ? OFFSET ?", [like, limit, offset]);
             postMessage({ id: message.id, ok: true, rows: files, total: totalRow ? Number(totalRow.total || 0) : 0 });
+          } else if (message.type === "variantSearch") {
+            const like = "%" + String(message.query || "").toLowerCase().replace(/[\\\\%_]/g, "\\\\$&") + "%";
+            const offset = Math.max(0, Number(message.page || 0)) * Math.max(1, Number(message.pageSize || 100));
+            const limit = Math.max(1, Number(message.pageSize || 100));
+            const baseCte = "WITH matches AS (" +
+              "SELECT path, lower_path, parent_path, name, lower(name) AS lower_name, file_id, size, langs, link, permissions, time, chunks_json FROM files WHERE lower_path LIKE ? ESCAPE '\\\\'" +
+              "), multi_names AS (" +
+              "SELECT lower_name FROM matches GROUP BY lower_name HAVING COUNT(DISTINCT parent_path) > 1" +
+              "), variants AS (" +
+              "SELECT MIN(path) AS representative_path, lower_name, name, file_id, size, COALESCE(chunks_json, '') AS chunks_key, COUNT(*) AS variant_path_count, COUNT(DISTINCT parent_path) AS variant_folder_count FROM matches WHERE lower_name IN (SELECT lower_name FROM multi_names) GROUP BY lower_name, file_id, size, chunks_key" +
+              ") ";
+            const totalRow = selectOne(baseCte + "SELECT COUNT(*) AS total FROM variants", [like]);
+            const rows = selectAll(baseCte +
+              "SELECT f.*, v.variant_path_count, v.variant_folder_count FROM variants v JOIN files f ON f.path = v.representative_path ORDER BY v.lower_name, f.size, f.file_id LIMIT ? OFFSET ?",
+              [like, limit, offset]);
+            postMessage({ id: message.id, ok: true, rows, total: totalRow ? Number(totalRow.total || 0) : 0 });
           } else if (message.type === "buildTree") {
             postMessage({ id: message.id, ok: true, folders: buildTree(message.totalFiles || 0, message.id) });
           } else if (message.type === "loadFolders") {
@@ -2131,6 +2171,8 @@
           permissions: Number(row.permissions || 0),
           time: Number(row.time || 0),
           chunks: row.chunks_json ? JSON.parse(row.chunks_json) : null,
+          variantPathCount: Number(row.variant_path_count || 0),
+          variantFolderCount: Number(row.variant_folder_count || 0),
         };
       }
 
@@ -2396,6 +2438,17 @@
     async function searchManifestFiles(query, page, token) {
       await initSqliteStore();
       const result = await sqliteRequest("search", { query, page, pageSize: FILE_PAGE_SIZE });
+      if (token !== state.searchToken) return { rows: [], total: 0, cancelled: true };
+      return {
+        rows: (result.rows || []).map(file => makeFile(file, getNodeByPath(file.parentPath) || state.fsRoot)),
+        total: Number(result.total || 0),
+        cancelled: false,
+      };
+    }
+
+    async function searchManifestFileVariants(query, page, token) {
+      await initSqliteStore();
+      const result = await sqliteRequest("variantSearch", { query, page, pageSize: FILE_PAGE_SIZE });
       if (token !== state.searchToken) return { rows: [], total: 0, cancelled: true };
       return {
         rows: (result.rows || []).map(file => makeFile(file, getNodeByPath(file.parentPath) || state.fsRoot)),
@@ -3336,7 +3389,7 @@
       for (let i = 0; i < parts.length - 1; i += 1) {
         dir = await dir.getDirectoryHandle(parts[i], { create: true });
       }
-      const handle = await dir.getFileHandle(parts[parts.length - 1] || "file.bin", { create: true });
+      const handle = await dir.getFileHandle(safeDownloadName(parts[parts.length - 1] || "file.bin"), { create: true });
       return await handle.createWritable();
     }
 
@@ -3403,6 +3456,7 @@
       await loadManifest();
       state.currentPath = "";
       setFileSearchBusy(false);
+      els.uniqueVariantSearch.disabled = false;
       renderFilesystem();
       els.startupModal.classList.remove("visible");
     }
@@ -3751,6 +3805,14 @@
     });
     els.fileSearchBtn.addEventListener("click", () => runTask("Searching files", runFileSearch));
     els.fileSearchCancelBtn.addEventListener("click", () => clearFileSearch(true));
+    els.uniqueVariantSearch.addEventListener("change", () => {
+      const value = els.fileSearch.value;
+      if (state.searchQuery) {
+        clearFileSearch(true);
+        els.fileSearch.value = value;
+      }
+      state.searchMode = els.uniqueVariantSearch.checked ? "variants" : "path";
+    });
     els.selectCurrentFolder.addEventListener("change", async event => {
       await setNodeSelected(getNodeByPath(state.currentPath), event.target.checked);
       renderFilesystem();
