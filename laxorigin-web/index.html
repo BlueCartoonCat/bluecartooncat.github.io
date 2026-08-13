@@ -1,0 +1,3824 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Laxorigin Web</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f3ed;
+      --panel: #ffffff;
+      --panel-2: #f0eee7;
+      --ink: #161812;
+      --muted: #62665b;
+      --line: #d8d2c4;
+      --accent: #0d7f73;
+      --accent-2: #155e9d;
+      --danger: #a73535;
+      --select: #edf7f5;
+      --shadow: 0 12px 32px rgba(28, 25, 17, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121411;
+      --panel: #1d211d;
+      --panel-2: #262b25;
+      --ink: #f2f0e9;
+      --muted: #b6b3a8;
+      --line: #3b4138;
+      --accent: #22a693;
+      --accent-2: #4a9fe7;
+      --danger: #ef7777;
+      --select: #163b38;
+      --shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-height: 2.25rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0.45rem 0.7rem;
+      background: var(--panel);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    button.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    button.icon {
+      width: 2.3rem;
+      padding: 0;
+      font-size: 1.05rem;
+    }
+
+    .topbar-button {
+      min-height: 2.25rem;
+      border-color: #d5dde7;
+      border-radius: 7px;
+      padding: 0.45rem 0.7rem;
+      background: #ffffff;
+      color: #171c25;
+      font-size: 1rem;
+      box-shadow: 0 1px 1px rgba(15, 23, 42, 0.03);
+    }
+
+    .topbar-button.icon {
+      width: 2.3rem;
+      padding: 0;
+    }
+
+    .topbar-button svg {
+      width: 1.05rem;
+      height: 1.05rem;
+      display: block;
+      fill: currentColor;
+    }
+
+    :root[data-theme="dark"] .topbar-button {
+      border-color: var(--line);
+      background: var(--panel);
+      color: var(--ink);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    button.loading {
+      opacity: 1;
+      cursor: progress;
+    }
+
+    button.loading::before {
+      content: "";
+      width: 0.9rem;
+      height: 0.9rem;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 999px;
+      animation: spin 780ms linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    input[type="text"], input[type="number"], input:not([type]) {
+      width: 100%;
+      min-height: 2.25rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 0.45rem 0.65rem;
+      background: var(--panel);
+      color: var(--ink);
+    }
+
+    input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--accent);
+    }
+
+    label {
+      display: grid;
+      gap: 0.35rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 650;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 84%, transparent);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.25rem;
+      letter-spacing: 0;
+    }
+
+    .header-actions, .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 0.62rem;
+      height: 0.62rem;
+      border-radius: 999px;
+      background: #a8a095;
+    }
+
+    .dot.ok { background: var(--accent); }
+    .dot.err { background: var(--danger); }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .credits-content {
+      display: grid;
+      gap: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .credits-content p {
+      margin: 0;
+    }
+
+    .credits-content a {
+      color: var(--accent-2);
+      font-weight: 650;
+    }
+
+    main {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 0.8rem;
+      padding: 1rem;
+      min-width: 0;
+    }
+
+    .panel, .modal-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.85rem 0.95rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-2);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 0.98rem;
+      letter-spacing: 0;
+    }
+
+    .panel-body {
+      display: grid;
+      gap: 0.85rem;
+      padding: 0.95rem;
+    }
+
+    .explorer-toolbar {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) auto;
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .search-actions {
+      display: flex;
+      align-items: end;
+      gap: 0.5rem;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .breadcrumbs button {
+      min-height: 1.9rem;
+      padding: 0.25rem 0.5rem;
+    }
+
+    .summary {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .explorer-toolbar > .summary {
+      grid-column: 1 / -1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      padding: 0.55rem 0.65rem;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      background: var(--panel-2);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:hover {
+      background: var(--select);
+    }
+
+    td.path-cell {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .table-wrap {
+      max-height: calc(100vh - 15rem);
+      overflow: auto;
+    }
+
+    .chunk-grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) minmax(300px, 0.9fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.7rem;
+      background: color-mix(in srgb, var(--panel) 88%, var(--panel-2));
+      min-width: 0;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 650;
+    }
+
+    .metric strong {
+      display: block;
+      overflow-wrap: anywhere;
+      margin-top: 0.25rem;
+      font-size: 0.98rem;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size: 0.84rem;
+    }
+
+    pre {
+      margin: 0;
+      max-height: 14rem;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.75rem;
+      background: #11150f;
+      color: #d8f1d9;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    :root[data-theme="dark"] pre {
+      background: #090b08;
+    }
+
+    .log {
+      min-height: 6rem;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .progress {
+      height: 0.55rem;
+      border-radius: 999px;
+      background: var(--panel-2);
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .progress > div {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 160ms ease;
+    }
+
+    .download-list {
+      display: grid;
+      gap: 0.55rem;
+      max-height: min(54vh, 34rem);
+      overflow: auto;
+      padding-right: 0.2rem;
+    }
+
+    .download-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.5rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.65rem;
+      background: color-mix(in srgb, var(--panel) 90%, var(--panel-2));
+    }
+
+    .download-row .path {
+      overflow-wrap: anywhere;
+      font-weight: 650;
+      min-width: 0;
+      font-size: 0.95rem;
+      line-height: 1.28;
+    }
+
+    .download-row .state {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+
+    .download-row .progress {
+      width: 100%;
+    }
+
+    .download-row.failed .state {
+      color: var(--danger);
+    }
+
+    .download-row.done .state {
+      color: var(--accent);
+    }
+
+    .modal, .cors-banner {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(18, 20, 17, 0.66);
+    }
+
+    .modal.visible, .cors-banner.visible {
+      display: flex;
+    }
+
+    .modal-panel {
+      width: min(720px, 100%);
+      max-height: min(92vh, 820px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .modal-panel.wide {
+      width: min(1180px, 100%);
+    }
+
+    .modal-panel.small {
+      width: min(520px, 100%);
+    }
+
+    .modal-panel > .panel-body {
+      overflow: auto;
+    }
+
+    .cors-banner-content {
+      width: min(760px, 100%);
+      border: 3px solid var(--danger);
+      border-radius: 8px;
+      padding: 1.35rem;
+      background: #fff3f0;
+      color: #641f1f;
+      box-shadow: var(--shadow);
+    }
+
+    .cors-banner strong {
+      display: block;
+      margin-bottom: 0.55rem;
+      font-size: 1.45rem;
+    }
+
+    @media (max-width: 880px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .explorer-toolbar, .chunk-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table-wrap {
+        max-height: 30rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Laxorigin Web</h1>
+      <div class="header-actions">
+        <div class="status sr-only"><span id="statusDot" class="dot"></span><span id="statusText">Idle</span></div>
+        <button id="themeBtn" class="topbar-button icon" type="button" title="Toggle theme" aria-label="Toggle theme"></button>
+        <button id="creditsBtn" class="topbar-button" type="button">Credits</button>
+        <button id="settingsBtn" class="topbar-button" type="button">Settings</button>
+        <button id="githubBtn" class="topbar-button icon" type="button" title="Open source repository" aria-label="Open source repository">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0.5C5.65 0.5 0.5 5.65 0.5 12c0 5.09 3.29 9.4 7.86 10.93 0.58 0.11 0.79-0.25 0.79-0.56v-2.17c-3.2 0.7-3.87-1.36-3.87-1.36-0.52-1.34-1.28-1.69-1.28-1.69-1.05-0.72 0.08-0.7 0.08-0.7 1.16 0.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36 0.96 0.1-0.75 0.4-1.25 0.73-1.54-2.55-0.29-5.23-1.27-5.23-5.67 0-1.25 0.45-2.28 1.18-3.08-0.12-0.29-0.51-1.46 0.11-3.04 0 0 0.96-0.31 3.16 1.18 0.92-0.26 1.9-0.38 2.88-0.39 0.98 0 1.96 0.13 2.88 0.39 2.19-1.49 3.15-1.18 3.15-1.18 0.63 1.58 0.23 2.75 0.11 3.04 0.74 0.8 1.18 1.83 1.18 3.08 0 4.41-2.69 5.38-5.25 5.66 0.41 0.36 0.78 1.07 0.78 2.15v3.18c0 0.31 0.21 0.68 0.8 0.56A11.52 11.52 0 0 0 23.5 12C23.5 5.65 18.35 0.5 12 0.5z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="corsBanner" class="cors-banner" role="alert" aria-modal="true">
+      <div class="cors-banner-content">
+        <strong>Archive.org request failed</strong>
+        <p>This project uses the RADS file at archive.org as the backend. Since archive.org has CORS headers, you either need a disable CORS extension or launch your browser with CORS disabled.</p>
+        <p><a href="https://github.com/BlueCartoonCat/bluecartooncat.github.io/tree/gh-pages/rads-web/extension.md" target="_blank" rel="noopener noreferrer">You can find a small writeup about how to use an extension to disable here.</a></p>
+      </div>
+    </div>
+
+    <div id="startupModal" class="modal visible" role="dialog" aria-modal="true" aria-labelledby="startupTitle">
+      <div class="modal-panel small">
+        <div class="panel-head">
+          <h2 id="startupTitle">Loading RADS Web</h2>
+          <button id="startupSettingsBtn" type="button">Settings</button>
+        </div>
+        <div class="panel-body">
+          <div>
+            <div class="progress" aria-hidden="true"><div id="indexProgress"></div></div>
+            <p class="hint" id="bundleLoadText">Press Start to load the bundle index and manifest.</p>
+          </div>
+          <div>
+            <div class="progress" aria-hidden="true"><div id="manifestProgress"></div></div>
+            <p class="hint" id="manifestProgressText">Nothing downloads until Start is pressed.</p>
+            <p class="hint" id="manifestWriteText"></p>
+          </div>
+          <div class="toolbar">
+            <button id="startupStartBtn" class="primary" type="button" disabled>Start</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-panel small">
+        <div class="panel-head">
+          <h2 id="settingsTitle">Settings</h2>
+          <button id="closeSettingsBtn" type="button">Close</button>
+        </div>
+        <div class="panel-body">
+          <div class="metric"><span>Current cache size</span><strong id="cacheSizeText">Calculating...</strong></div>
+          <div class="settings-grid">
+            <label>Parallel file downloads
+              <input id="parallelFileDownloads" type="number" min="1" step="1">
+            </label>
+            <label>Parallel chunk downloads per file
+              <input id="parallelChunkDownloads" type="number" min="1" step="1">
+            </label>
+          </div>
+          <div class="toolbar">
+            <button id="chunkViewBtn" type="button">Chunk View</button>
+            <button id="exportCacheBtn" type="button">Export initial cache</button>
+            <button id="importCacheBtn" type="button">Import initial cache</button>
+            <input id="importCacheFile" type="file" accept=".radscache,application/octet-stream" hidden>
+          </div>
+          <button id="clearCacheBtn" class="danger" type="button">Remove local cache</button>
+          <p class="hint">Export/import stores the cached compressed manifest and bundle index so they can be restored without downloading from Archive.org again.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="creditsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="creditsTitle">
+      <div class="modal-panel small">
+        <div class="panel-head">
+          <h2 id="creditsTitle">Credits</h2>
+          <button id="closeCreditsBtn" type="button">Close</button>
+        </div>
+        <div class="panel-body credits-content">
+          <p>This is a Browser port of <a href="https://github.com/RiotArchiveProject/catalog-download-script" target="_blank" rel="noopener noreferrer">RiotArchiveProject/catalog-download-script</a>.</p>
+          <p><strong>Original script credits:</strong><br>PixelButts<br><a href="https://x.com/PixelButts" target="_blank" rel="noopener noreferrer">x.com/PixelButts</a><br><a href="https://bsky.app/profile/pixel-butts.bsky.social" target="_blank" rel="noopener noreferrer">pixel-butts.bsky.social</a></p>
+          <p><a href="https://github.com/RiotArchiveProject/catalog-download-script" target="_blank" rel="noopener noreferrer">RiotArchiveProject/catalog-download-script</a></p>
+          <p><strong>rman-rs acknowledgements:</strong><br>@moonshadow565 for <a href="https://github.com/moonshadow565/rman" target="_blank" rel="noopener noreferrer">rman CLI tools for rito manifest and bundle files</a>; most of the schema is based on his work.<br>@Morilli for <a href="https://github.com/Morilli/ManifestDownloader" target="_blank" rel="noopener noreferrer">ManifestDownloader</a>, early exposure to the .manifest format, and Discord help.<br>@Kurainu for <a href="https://github.com/Kurainu/RMAN-Parse" target="_blank" rel="noopener noreferrer">RMAN-Parse</a>, which informed early drafts of rman-rs.</p>
+          <p><a href="https://github.com/ev3nvy/rman-rs" target="_blank" rel="noopener noreferrer">ev3nvy/rman-rs</a></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="fsApiModal" class="cors-banner" role="alert" aria-modal="true">
+      <div class="cors-banner-content">
+        <strong>Downloads Need File System Access</strong>
+        <p>Use Chrome/Edge or enable FileSystemAPI in Brave.</p>
+      </div>
+    </div>
+
+    <div id="opfsBanner" class="cors-banner" role="alert" aria-modal="true">
+      <div class="cors-banner-content">
+        <strong>SQLite Needs Persistent OPFS</strong>
+        <p id="opfsBannerText">SQLite could not open a persistent OPFS database. This app will not use a transient memory database.</p>
+      </div>
+    </div>
+
+    <div id="downloadModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="downloadTitle">
+      <div class="modal-panel">
+        <div class="panel-head">
+          <h2 id="downloadTitle">Downloading Selected</h2>
+          <button id="downloadCancelBtn" type="button">Cancel</button>
+        </div>
+        <div class="panel-body">
+          <div>
+            <div class="progress" aria-hidden="true"><div id="downloadOverallProgress"></div></div>
+            <p class="hint" id="downloadOverallText">Preparing downloads...</p>
+          </div>
+          <div id="downloadRows" class="download-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="chunkModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="chunkTitle">
+      <div class="modal-panel wide">
+        <div class="panel-head">
+          <h2 id="chunkTitle">Chunk View</h2>
+          <button id="closeChunkBtn" type="button">Close</button>
+        </div>
+        <div class="panel-body">
+          <div class="chunk-grid">
+            <div class="panel">
+              <div class="panel-head"><h2>Range Reader</h2></div>
+              <div class="panel-body">
+                <div class="explorer-toolbar">
+                  <label>Offset
+                    <input id="rangeOffset" class="mono" value="0">
+                  </label>
+                  <label>Length
+                    <input id="rangeLength" class="mono" value="64">
+                  </label>
+                </div>
+                <button id="rangeBtn" type="button" disabled>Read Range</button>
+                <pre id="hexOut" class="mono"></pre>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head"><h2>Selected Chunk</h2></div>
+              <div class="panel-body">
+                <div class="metrics">
+                  <div class="metric"><span>Chunk ID</span><strong id="selId">-</strong></div>
+                  <div class="metric"><span>Compressed offset</span><strong id="selOffset">-</strong></div>
+                  <div class="metric"><span>Compressed size</span><strong id="selComp">-</strong></div>
+                  <div class="metric"><span>Uncompressed size</span><strong id="selUncomp">-</strong></div>
+                </div>
+                <div class="toolbar">
+                  <button id="fetchChunkBtn" type="button" disabled>Fetch Compressed</button>
+                  <button id="decompressBtn" type="button" disabled>Decompress</button>
+                  <button id="downloadBtn" type="button" disabled>Download Last Result</button>
+                </div>
+                <pre id="chunkPreview" class="mono"></pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Chunks</h2>
+              <div class="toolbar">
+                <button id="prevPage" type="button" disabled>Previous</button>
+                <button id="nextPage" type="button" disabled>Next</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="explorer-toolbar">
+                <label>Search chunk id
+                  <input id="chunkSearch" class="mono" placeholder="hex or decimal id" disabled>
+                </label>
+                <button id="searchBtn" type="button" disabled>Find</button>
+              </div>
+              <div class="hint" id="pageText">No index loaded.</div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Chunk ID</th>
+                    <th>Offset</th>
+                    <th>Compressed</th>
+                    <th>Uncompressed</th>
+                  </tr>
+                </thead>
+                <tbody id="chunkRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Files</h2>
+          <div class="toolbar">
+            <button id="deselectAllBtn" type="button" disabled>Deselect Everything</button>
+            <button id="downloadSelectedBtn" class="primary" type="button" disabled>Download Selected</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="explorer-toolbar">
+            <label>Search path
+              <input id="fileSearch" placeholder="DATA, .wad, League of Legends.exe" disabled>
+            </label>
+            <div class="search-actions">
+              <button id="fileSearchBtn" type="button" disabled>Search</button>
+              <button id="fileSearchCancelBtn" type="button" disabled>Cancel</button>
+            </div>
+            <div class="summary" id="selectionSummary">No files selected.</div>
+          </div>
+          <div class="breadcrumbs" id="breadcrumbs"></div>
+          <div class="toolbar">
+            <div class="hint" id="filePageText">Loading manifest...</div>
+            <button id="filePrevPage" type="button" disabled>Previous</button>
+            <button id="fileNextPage" type="button" disabled>Next</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input id="selectCurrentFolder" type="checkbox" disabled></th>
+                <th>Name</th>
+                <th>Kind</th>
+                <th>Size</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="fileRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Operation Log</h2></div>
+        <div class="panel-body">
+          <pre id="log" class="mono log"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    "use strict";
+
+    const FOOTER_SIZE = 20n;
+    const RCHUNK_SIZE = 16n;
+    const PAGE_SIZE = 100;
+    const FILE_PAGE_SIZE = 100;
+    const RADS_BUNDLE_URL = "https://archive.org/download/league-of-legends-legacy-patch-system-conversions/laxorigin1/Bundles/laxorigin1.bundle";
+    const RADS_MANIFEST_URL = "https://archive.org/download/league-of-legends-legacy-patch-system-conversions/laxorigin1/Manifests/laxorigin1.json.zstd";
+    const DEFAULT_FILE_CONCURRENCY = 2;
+    const DEFAULT_CHUNK_CONCURRENCY = 4;
+    const CACHE_DB = "rads-archive-explorer-cache";
+    const CACHE_STORE = "files";
+    const MANIFEST_FILE_STORE = "manifestFiles";
+    const MANIFEST_CACHE_KEY = "manifest:RADS.json.zstd";
+    const PARSED_MANIFEST_META_KEY = "manifest-files:RADS.json.zstd";
+    const SQLITE_WASM_URL = "https://cdn.jsdelivr.net/npm/@sqlite.org/sqlite-wasm@3.53.0-build1/dist/index.mjs";
+
+    const els = {};
+    const state = {
+      source: null,
+      footer: null,
+      index: null,
+      manifestFiles: [],
+      fsRoot: null,
+      currentPath: "",
+      searchQuery: "",
+      searchRows: null,
+      searchTotal: 0,
+      searchPage: 0,
+      searchToken: 0,
+      searchBusy: false,
+      renderToken: 0,
+      selectedKeys: new Set(),
+      page: 0,
+      selected: null,
+      selectedFile: null,
+      lastBytes: null,
+      lastName: "chunk.bin",
+      downloadTask: null,
+      fileConcurrency: DEFAULT_FILE_CONCURRENCY,
+      chunkConcurrency: DEFAULT_CHUNK_CONCURRENCY,
+      zstdWorkerUrl: null,
+      zstdWorkers: [],
+      zstdQueue: [],
+      sqliteWorker: null,
+      sqliteNextId: 1,
+      sqlitePending: new Map(),
+      sqliteReady: null,
+      sqlitePersistent: false,
+    };
+
+    for (const id of [
+      "statusDot", "statusText", "themeBtn", "creditsBtn", "settingsBtn", "githubBtn", "startupSettingsBtn", "chunkViewBtn",
+      "settingsModal", "closeSettingsBtn", "creditsModal", "closeCreditsBtn", "clearCacheBtn", "exportCacheBtn", "importCacheBtn", "importCacheFile", "cacheSizeText",
+      "parallelFileDownloads", "parallelChunkDownloads",
+      "startupStartBtn",
+      "startupModal", "corsBanner", "fsApiModal", "opfsBanner", "opfsBannerText", "chunkModal", "closeChunkBtn",
+      "downloadModal", "downloadCancelBtn", "downloadOverallProgress", "downloadOverallText", "downloadRows",
+      "indexProgress", "bundleLoadText", "manifestProgress", "manifestProgressText",
+      "manifestWriteText", "fileSearch", "filePageText", "fileRows", "breadcrumbs", "selectionSummary",
+      "fileSearchBtn", "fileSearchCancelBtn", "filePrevPage", "fileNextPage", "deselectAllBtn", "downloadSelectedBtn", "selectCurrentFolder",
+      "rangeOffset", "rangeLength", "rangeBtn", "hexOut", "chunkSearch", "searchBtn",
+      "prevPage", "nextPage", "pageText", "chunkRows", "selId", "selOffset", "selComp",
+      "selUncomp", "fetchChunkBtn", "decompressBtn", "downloadBtn", "chunkPreview", "log",
+    ]) {
+      els[id] = document.getElementById(id);
+    }
+
+    class ArchiveRangeReader {
+      constructor(url) {
+        this.url = url;
+        this.size = null;
+      }
+
+      async probe() {
+        const first = await this.read(0n, 1);
+        if (first.length !== 1) throw new Error("range probe returned " + first.length + " bytes");
+        const footer = await this.read(this.size - FOOTER_SIZE, Number(FOOTER_SIZE));
+        return RADSBundleIndex.parseFooter(footer, this.size);
+      }
+
+      async read(offset, length, signal) {
+        const start = parseFlexibleBigInt(offset);
+        const size = BigInt(length);
+        if (size <= 0n) throw new Error("range length must be positive");
+        const end = start + size - 1n;
+        log("GET " + start + "-" + end);
+        const response = await fetch(this.url, {
+          signal,
+          headers: { Range: "bytes=" + start + "-" + end },
+        });
+        if (response.status !== 206) throw new Error("expected HTTP 206 Partial Content, received HTTP " + response.status);
+        const total = parseContentRangeTotal(response.headers.get("Content-Range"));
+        if (total !== null) this.size = total;
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (bytes.length !== Number(size)) throw new Error("expected " + size + " bytes, received " + bytes.length);
+        return bytes;
+      }
+
+      async readWithProgress(offset, length, onProgress, signal) {
+        const start = parseFlexibleBigInt(offset);
+        const size = BigInt(length);
+        if (size <= 0n) throw new Error("range length must be positive");
+        const end = start + size - 1n;
+        const expected = Number(size);
+        log("GET " + start + "-" + end);
+        return await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("GET", this.url, true);
+          xhr.responseType = "arraybuffer";
+          xhr.setRequestHeader("Range", "bytes=" + start + "-" + end);
+          if (signal) {
+            if (signal.aborted) {
+              reject(new DOMException("request aborted", "AbortError"));
+              return;
+            }
+            signal.addEventListener("abort", () => {
+              xhr.abort();
+              reject(new DOMException("request aborted", "AbortError"));
+            }, { once: true });
+          }
+          xhr.onprogress = event => {
+            if (onProgress) onProgress(event.loaded / expected, event.loaded, expected);
+          };
+          xhr.onload = () => {
+            if (xhr.status !== 206) {
+              reject(new Error("expected HTTP 206 Partial Content, received HTTP " + xhr.status));
+              return;
+            }
+            const total = parseContentRangeTotal(xhr.getResponseHeader("Content-Range"));
+            if (total !== null) this.size = total;
+            const bytes = new Uint8Array(xhr.response);
+            if (bytes.length !== expected) {
+              reject(new Error("expected " + expected + " bytes, received " + bytes.length));
+              return;
+            }
+            if (onProgress) onProgress(1, bytes.length, expected);
+            resolve(bytes);
+          };
+          xhr.onerror = () => reject(new Error("network error while reading range"));
+          xhr.onabort = () => reject(new DOMException("request aborted", "AbortError"));
+          xhr.send();
+        });
+      }
+    }
+
+    class RADSBundleIndex {
+      constructor(footer, bytes) {
+        this.footer = footer;
+        this.bytes = bytes;
+        this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        this.entryCount = footer.entryCount;
+      }
+
+      static parseFooter(bytes, remoteSize) {
+        if (bytes.length !== 20) throw new Error("RBUN footer must be 20 bytes");
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        const magic = String.fromCharCode(bytes[16], bytes[17], bytes[18], bytes[19]);
+        if (magic !== "RBUN") throw new Error("invalid footer magic " + JSON.stringify(magic));
+        const entryCount = view.getUint32(8, true);
+        const version = view.getUint32(12, true);
+        const tocBytes = BigInt(entryCount) * RCHUNK_SIZE;
+        const tocOffset = remoteSize - FOOTER_SIZE - tocBytes;
+        if (tocOffset < 0n) throw new Error("TOC is larger than remote file");
+        return {
+          checksum: bytesToHex(bytes.subarray(0, 8)),
+          entryCount,
+          version,
+          remoteSize,
+          tocBytes,
+          tocOffset,
+        };
+      }
+
+      static parseToc(footer, bytes, onProgress) {
+        const expected = Number(footer.tocBytes);
+        if (bytes.length !== expected) throw new Error("TOC size mismatch");
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        let compressedOffset = 0n;
+        for (let i = 0; i < footer.entryCount; i += 1) {
+          compressedOffset += BigInt(view.getUint32(i * Number(RCHUNK_SIZE) + 12, true));
+          if (onProgress && i % 5000 === 0) onProgress(i / Math.max(footer.entryCount, 1));
+        }
+        if (compressedOffset > footer.tocOffset) throw new Error("chunk data extends into the TOC");
+        if (onProgress) onProgress(1);
+        return new RADSBundleIndex(footer, bytes);
+      }
+
+      get(id) {
+        const target = parseChunkId(id);
+        let compressedOffset = 0n;
+        for (let i = 0; i < this.entryCount; i += 1) {
+          const pos = i * Number(RCHUNK_SIZE);
+          const chunkId = this.view.getBigUint64(pos, true);
+          const uncompressedSize = this.view.getUint32(pos + 8, true);
+          const compressedSize = this.view.getUint32(pos + 12, true);
+          if (chunkId === target) return { index: i, id: chunkId, offset: compressedOffset, compressedSize, uncompressedSize };
+          compressedOffset += BigInt(compressedSize);
+        }
+        return null;
+      }
+
+      entryAt(index) {
+        if (index < 0 || index >= this.entryCount) return null;
+        let compressedOffset = 0n;
+        for (let i = 0; i <= index; i += 1) {
+          const pos = i * Number(RCHUNK_SIZE);
+          const id = this.view.getBigUint64(pos, true);
+          const uncompressedSize = this.view.getUint32(pos + 8, true);
+          const compressedSize = this.view.getUint32(pos + 12, true);
+          if (i === index) return { index, id, offset: compressedOffset, compressedSize, uncompressedSize };
+          compressedOffset += BigInt(compressedSize);
+        }
+        return null;
+      }
+    }
+
+    function setStatus(kind, text) {
+      els.statusDot.className = "dot" + (kind ? " " + kind : "");
+      els.statusText.textContent = text;
+    }
+
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      els.log.textContent = "[" + time + "] " + message + "\n" + els.log.textContent;
+    }
+
+    function parseContentRangeTotal(header) {
+      if (!header) throw new Error("missing Content-Range header");
+      const match = /\/(\d+)$/.exec(header);
+      return match ? BigInt(match[1]) : null;
+    }
+
+    function parseFlexibleBigInt(value) {
+      const text = String(value).trim().replace(/_/g, "");
+      if (!text) throw new Error("expected an integer");
+      return BigInt(text);
+    }
+
+    function parseChunkId(value) {
+      const text = String(value).trim().replace(/_/g, "");
+      if (!text) throw new Error("expected a chunk id");
+      if (/^0x[0-9a-f]+$/i.test(text)) return BigInt(text);
+      if (/[a-f]/i.test(text) && /^[0-9a-f]{1,16}$/i.test(text)) return BigInt("0x" + text);
+      return BigInt(text);
+    }
+
+    function bytesToHex(bytes) {
+      return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+    }
+
+    function chunkIdHex(id) {
+      return BigInt.asUintN(64, id).toString(16).toUpperCase().padStart(16, "0");
+    }
+
+    function formatBytes(value) {
+      const n = typeof value === "bigint" ? Number(value) : value;
+      if (!Number.isFinite(n)) return String(value);
+      const units = ["B", "KB", "MB", "GB", "TB"];
+      let amount = n;
+      let unit = 0;
+      while (amount >= 1024 && unit < units.length - 1) {
+        amount /= 1024;
+        unit += 1;
+      }
+      return amount.toLocaleString(undefined, { maximumFractionDigits: unit ? 2 : 0 }) + " " + units[unit];
+    }
+
+    function formatPercent(received, total) {
+      if (!total || total <= 0) return "0";
+      const percent = Math.min(100, received / total * 100);
+      return percent < 10 ? percent.toFixed(1) : Math.floor(percent).toString();
+    }
+
+    function formatProgressPercent(percent) {
+      if (!Number.isFinite(percent)) return "0";
+      const clamped = Math.max(0, Math.min(100, percent));
+      if (clamped > 0 && clamped < 0.1) return "0.1";
+      return clamped < 10 ? clamped.toFixed(1) : Math.floor(clamped).toString();
+    }
+
+    function formatEta(received, total, startedAt) {
+      if (!received || !total || received >= total) return "00:00:00";
+      const elapsedSeconds = (performance.now() - startedAt) / 1000;
+      if (elapsedSeconds <= 0) return "--:--:--";
+      const bytesPerSecond = received / elapsedSeconds;
+      if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return "--:--:--";
+      return formatDuration((total - received) / bytesPerSecond);
+    }
+
+    function formatDuration(seconds) {
+      const totalSeconds = Math.max(0, Math.ceil(seconds));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor(totalSeconds % 3600 / 60);
+      const secs = totalSeconds % 60;
+      return [hours, minutes, secs].map(value => String(value).padStart(2, "0")).join(":");
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      })[char]);
+    }
+
+    function safeDownloadName(path) {
+      const name = String(path).split("/").filter(Boolean).pop() || "rads-file.bin";
+      return name.replace(/[\\/:*?"<>|]+/g, "_");
+    }
+
+    function bundleIndexCacheKey(footer) {
+      return ["bundle-toc", footer.checksum, footer.entryCount, footer.tocOffset.toString(), footer.tocBytes.toString()].join(":");
+    }
+
+    function nodeKey(node) {
+      return node.type + ":" + node.path;
+    }
+
+    function makeFolder(name, path, parent) {
+      return { type: "folder", name, path, parent, children: new Map(), size: 0, fileCount: 0 };
+    }
+
+    function makeFile(file, parent) {
+      return { type: "file", name: file.name, path: file.path, parent, file, size: file.size || 0, fileCount: 1 };
+    }
+
+    function normalizeManifestFile(file) {
+      const path = String(file.path || "");
+      const parts = path.split("/").filter(Boolean);
+      const name = parts[parts.length - 1] || path;
+      const parentPath = parts.length > 1 ? parts.slice(0, -1).join("/") : "";
+      return {
+        fileId: String(file.fileId || "").toUpperCase().replace(/^0X/, ""),
+        path,
+        lowerPath: path.toLowerCase(),
+        parentPath,
+        name,
+        size: Number(file.size || 0),
+        langs: file.langs || "",
+        link: file.link || "",
+        permissions: file.permissions || 0,
+        time: file.time || 0,
+        chunks: Array.isArray(file.chunks) ? file.chunks : null,
+      };
+    }
+
+    function buildFilesystem(files) {
+      const root = makeFolder("", "", null);
+      for (const file of files) {
+        addFileToFolderTree(root, normalizeManifestFile(file));
+      }
+      return root;
+    }
+
+    function addFileToFolderTree(root, file) {
+      const parts = file.path.split("/").filter(Boolean);
+      let dir = root;
+      dir.size += file.size || 0;
+      dir.fileCount += 1;
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        const name = parts[i];
+        const path = dir.path ? dir.path + "/" + name : name;
+        if (!dir.children.has(name)) dir.children.set(name, makeFolder(name, path, dir));
+        dir = dir.children.get(name);
+        dir.size += file.size || 0;
+        dir.fileCount += 1;
+      }
+    }
+
+    async function buildFilesystemFromDb(totalFiles) {
+      await initSqliteStore();
+      els.manifestWriteText.textContent = "Checking filesystem index cache...";
+      const cachedCount = await countFolderRows().catch(() => 0);
+      if (cachedCount > 0) {
+        els.manifestWriteText.textContent = "Loading filesystem index from SQLite cache...";
+        const cached = await sqliteRequest("loadFolders", {}, message => {
+          const loaded = Number(message.loaded || 0);
+          const total = Number(message.total || cachedCount || 0);
+          els.manifestWriteText.textContent = total
+            ? "Loading filesystem index from SQLite cache: " + formatPercent(loaded, total) + "% (" + loaded.toLocaleString() + " / " + total.toLocaleString() + " folders)"
+            : "Loading filesystem index from SQLite cache: " + loaded.toLocaleString() + " folders...";
+        });
+        els.manifestWriteText.textContent = "Loaded filesystem index from SQLite cache.";
+        return filesystemFromFolderRows(cached.folders);
+      }
+      els.manifestWriteText.textContent = "Building filesystem index: 0%";
+      const result = await sqliteRequest("buildTree", { totalFiles: totalFiles || 0 }, message => {
+        const scanned = Number(message.scanned || 0);
+        const total = Number(message.total || 0);
+        els.manifestWriteText.textContent = total
+          ? "Building filesystem index: " + formatPercent(scanned, total) + "% (" + scanned.toLocaleString() + " / " + total.toLocaleString() + " files)"
+          : "Building filesystem index: " + scanned.toLocaleString() + " files...";
+      });
+      els.manifestWriteText.textContent = "Filesystem index built.";
+      return filesystemFromFolderRows(result.folders || []);
+    }
+
+    function filesystemFromFolderRows(folders) {
+      const root = makeFolder("", "", null);
+      for (const folder of folders || []) {
+        if (!folder.path) {
+          root.size = Number(folder.size || 0);
+          root.fileCount = Number(folder.fileCount || 0);
+          continue;
+        }
+        const parts = folder.path.split("/").filter(Boolean);
+        let parent = root;
+        let path = "";
+        for (const part of parts) {
+          path = path ? path + "/" + part : part;
+          if (!parent.children.has(part)) parent.children.set(part, makeFolder(part, path, parent));
+          parent = parent.children.get(part);
+        }
+        parent.size = Number(folder.size || 0);
+        parent.fileCount = Number(folder.fileCount || 0);
+      }
+      return root;
+    }
+
+    function computeFolderStats(node) {
+      if (node.type === "file") return { size: node.size, fileCount: 1 };
+      let size = 0;
+      let fileCount = 0;
+      for (const child of node.children.values()) {
+        const stats = computeFolderStats(child);
+        size += stats.size;
+        fileCount += stats.fileCount;
+      }
+      node.size = size;
+      node.fileCount = fileCount;
+      return { size, fileCount };
+    }
+
+    function getNodeByPath(path) {
+      if (!state.fsRoot || !path) return state.fsRoot;
+      let node = state.fsRoot;
+      for (const part of path.split("/").filter(Boolean)) {
+        node = node.children.get(part);
+        if (!node) return null;
+      }
+      return node;
+    }
+
+    function descendantFiles(node, out) {
+      if (!node) return out;
+      if (node.type === "file") {
+        out.push(node.file);
+        return out;
+      }
+      for (const child of node.children.values()) descendantFiles(child, out);
+      return out;
+    }
+
+    async function selectedFiles() {
+      const byPath = new Map();
+      for (const key of state.selectedKeys) {
+        const split = key.indexOf(":");
+        const type = key.slice(0, split);
+        const path = key.slice(split + 1);
+        if (type === "file") {
+          const file = await getManifestFile(path);
+          if (file) byPath.set(file.path, file);
+        }
+        if (type === "folder") {
+          for (const file of await getManifestFilesUnderFolder(path)) byPath.set(file.path, file);
+        }
+      }
+      return Array.from(byPath.values());
+    }
+
+    function resolveEntriesForFiles(files) {
+      if (!state.index) throw new Error("bundle index is not loaded");
+      const wanted = new Map();
+      for (const file of files) wanted.set(parseChunkId("0x" + file.fileId).toString(), file);
+      const resolved = new Map();
+      let compressedOffset = 0n;
+      for (let i = 0; i < state.index.entryCount && resolved.size < wanted.size; i += 1) {
+        const pos = i * Number(RCHUNK_SIZE);
+        const chunkId = state.index.view.getBigUint64(pos, true);
+        const uncompressedSize = state.index.view.getUint32(pos + 8, true);
+        const compressedSize = state.index.view.getUint32(pos + 12, true);
+        const key = chunkId.toString();
+        if (wanted.has(key)) {
+          const file = wanted.get(key);
+          resolved.set(file.path, { index: i, id: chunkId, offset: compressedOffset, compressedSize, uncompressedSize });
+        }
+        compressedOffset += BigInt(compressedSize);
+      }
+      return resolved;
+    }
+
+    function resolveEntriesForChunkRefs(chunks) {
+      if (!state.index) throw new Error("bundle index is not loaded");
+      const wanted = new Set(chunks.map(chunk => parseChunkId("0x" + chunk.chunkId).toString()));
+      const resolved = new Map();
+      let compressedOffset = 0n;
+      for (let i = 0; i < state.index.entryCount && resolved.size < wanted.size; i += 1) {
+        const pos = i * Number(RCHUNK_SIZE);
+        const chunkId = state.index.view.getBigUint64(pos, true);
+        const uncompressedSize = state.index.view.getUint32(pos + 8, true);
+        const compressedSize = state.index.view.getUint32(pos + 12, true);
+        const key = chunkId.toString();
+        if (wanted.has(key)) {
+          resolved.set(key, { index: i, id: chunkId, offset: compressedOffset, compressedSize, uncompressedSize });
+        }
+        compressedOffset += BigInt(compressedSize);
+      }
+      return resolved;
+    }
+
+    async function currentFolderFiles() {
+      return await getManifestFilesUnderFolder(state.currentPath);
+    }
+
+    function isNodeFullySelected(node) {
+      if (!node) return false;
+      if (node.type === "file") return state.selectedKeys.has(nodeKey(node)) || isCoveredBySelectedFolder(node.path);
+      return state.selectedKeys.has(nodeKey(node));
+    }
+
+    function isCoveredBySelectedFolder(path) {
+      const parts = path.split("/").filter(Boolean);
+      for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const folderPath = parts.slice(0, i).join("/");
+        if (state.selectedKeys.has("folder:" + folderPath)) return true;
+      }
+      return false;
+    }
+
+    function hasSelectedAncestorFolder(path) {
+      const parts = path.split("/").filter(Boolean);
+      for (let i = parts.length - 1; i >= 0; i -= 1) {
+        const folderPath = parts.slice(0, i).join("/");
+        if (folderPath !== path && state.selectedKeys.has("folder:" + folderPath)) return true;
+      }
+      return false;
+    }
+
+    async function setNodeSelected(node, checked) {
+      if (!node) return;
+      if (node.type === "file") {
+        const key = nodeKey(node);
+        if (checked) state.selectedKeys.add(key);
+        else state.selectedKeys.delete(key);
+        return;
+      }
+      const folderKey = nodeKey(node);
+      if (checked) state.selectedKeys.add(folderKey);
+      else state.selectedKeys.delete(folderKey);
+    }
+
+    async function renderFilesystem() {
+      if (!state.fsRoot) return;
+      const renderToken = state.renderToken + 1;
+      state.renderToken = renderToken;
+      const query = state.searchQuery;
+      const folder = getNodeByPath(state.currentPath);
+      if (!folder) {
+        state.currentPath = "";
+        return renderFilesystem();
+      }
+      const files = query ? [] : (await getManifestFilesByParent(state.currentPath)).map(file => makeFile(file, folder));
+      if (renderToken !== state.renderToken) return;
+      const rows = query ? Array.from(state.searchRows || []) : Array.from(folder.children.values()).concat(files);
+      rows.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === "folder" ? -1 : 1));
+      els.fileRows.textContent = "";
+      const frag = document.createDocumentFragment();
+      for (const node of rows) {
+        const tr = document.createElement("tr");
+        const checked = isNodeFullySelected(node) ? "checked" : "";
+        const kind = node.type === "folder" ? "Folder" : "File";
+        const size = node.type === "folder" ? formatBytes(node.size) + " / " + node.fileCount.toLocaleString() + " files" : formatBytes(node.size);
+        const name = query ? node.path : node.name;
+        tr.innerHTML =
+          "<td><input type=\"checkbox\" data-key=\"" + escapeHtml(nodeKey(node)) + "\" " + checked + "></td>" +
+          "<td class=\"path-cell\">" + (node.type === "folder" ? "📁 " : "📄 ") + escapeHtml(name) + "</td>" +
+          "<td>" + kind + "</td>" +
+          "<td>" + size + "</td>" +
+          "<td></td>";
+        const actions = tr.lastChild;
+        if (query && node.type === "file") {
+          const goBtn = document.createElement("button");
+          goBtn.type = "button";
+          goBtn.textContent = "Go to folder";
+          goBtn.addEventListener("click", () => {
+            state.currentPath = node.file.parentPath || "";
+            clearFileSearch(false);
+            renderFilesystem();
+          });
+          actions.appendChild(goBtn);
+        }
+        tr.querySelector("input").addEventListener("change", async event => {
+          await setNodeSelected(node, event.target.checked);
+          renderFilesystem();
+        });
+        tr.querySelector(".path-cell").addEventListener("click", () => {
+          if (node.type === "folder") {
+            state.currentPath = node.path;
+            if (query) clearFileSearch(false);
+            renderFilesystem();
+          } else if (node.type === "file") {
+            selectManifestFile(node.file);
+          }
+        });
+        frag.appendChild(tr);
+      }
+      els.fileRows.appendChild(frag);
+      els.filePageText.textContent = query
+        ? "Search \"" + state.searchQuery + "\" · " + state.searchTotal.toLocaleString() + " matches · page " + (state.searchPage + 1).toLocaleString() + " / " + Math.max(1, Math.ceil(state.searchTotal / FILE_PAGE_SIZE)).toLocaleString()
+        : (state.currentPath || "/") + " · " + rows.length.toLocaleString() + " items.";
+      els.filePrevPage.disabled = !query || state.searchPage <= 0;
+      els.fileNextPage.disabled = !query || (state.searchPage + 1) * FILE_PAGE_SIZE >= state.searchTotal;
+      renderBreadcrumbs();
+      renderSelectionSummary();
+    }
+
+    async function runFileSearch() {
+      if (!state.fsRoot) return;
+      const query = els.fileSearch.value.trim().toLowerCase();
+      const token = state.searchToken + 1;
+      state.searchToken = token;
+      if (!query) {
+        clearFileSearch(true);
+        return;
+      }
+      state.searchQuery = query;
+      state.searchRows = [];
+      state.searchTotal = 0;
+      state.searchPage = 0;
+      setFileSearchBusy(true);
+      els.filePageText.textContent = "Searching paths...";
+      els.fileRows.textContent = "";
+      await nextFrame();
+      try {
+        const result = await searchFilesystemAsync(query, 0, token);
+        if (token !== state.searchToken) return;
+        state.searchRows = result.rows;
+        state.searchTotal = result.total;
+        setFileSearchBusy(false);
+        renderFilesystem();
+      } catch (error) {
+        if (token === state.searchToken) setFileSearchBusy(false);
+        throw error;
+      }
+    }
+
+    function clearFileSearch(render) {
+      state.searchToken += 1;
+      setFileSearchBusy(false);
+      state.searchQuery = "";
+      state.searchRows = null;
+      state.searchTotal = 0;
+      state.searchPage = 0;
+      els.fileSearch.value = "";
+      els.fileSearchBtn.disabled = !state.fsRoot;
+      els.fileSearchCancelBtn.disabled = true;
+      if (render) renderFilesystem();
+    }
+
+    async function searchFilesystemAsync(query, page, token) {
+      return await searchManifestFiles(query, page, token);
+    }
+
+    async function gotoSearchPage(page) {
+      if (!state.searchQuery) return;
+      const token = state.searchToken + 1;
+      state.searchToken = token;
+      state.searchPage = Math.max(0, page);
+      els.filePrevPage.disabled = true;
+      els.fileNextPage.disabled = true;
+      setFileSearchBusy(true);
+      els.filePageText.textContent = "Searching paths...";
+      try {
+        const result = await searchFilesystemAsync(state.searchQuery, state.searchPage, token);
+        if (token !== state.searchToken) return;
+        state.searchRows = result.rows;
+        state.searchTotal = result.total;
+        setFileSearchBusy(false);
+        renderFilesystem();
+      } catch (error) {
+        if (token === state.searchToken) setFileSearchBusy(false);
+        throw error;
+      }
+    }
+
+    function setFileSearchBusy(busy) {
+      state.searchBusy = busy;
+      els.fileSearch.disabled = busy || !state.fsRoot;
+      els.fileSearchBtn.disabled = busy || !state.fsRoot;
+      els.fileSearchBtn.classList.toggle("loading", busy);
+      els.fileSearchBtn.textContent = busy ? "Searching" : "Search";
+      els.fileSearchCancelBtn.disabled = !busy && !state.searchQuery;
+    }
+
+    function nextFrame() {
+      return new Promise(resolve => requestAnimationFrame(resolve));
+    }
+
+    function renderBreadcrumbs() {
+      els.breadcrumbs.textContent = "";
+      const rootBtn = document.createElement("button");
+      rootBtn.type = "button";
+      rootBtn.textContent = "/";
+      rootBtn.addEventListener("click", () => {
+        state.currentPath = "";
+        renderFilesystem();
+      });
+      els.breadcrumbs.appendChild(rootBtn);
+      let path = "";
+      for (const part of state.currentPath.split("/").filter(Boolean)) {
+        const sep = document.createElement("span");
+        sep.textContent = "/";
+        els.breadcrumbs.appendChild(sep);
+        path = path ? path + "/" + part : part;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = part;
+        btn.dataset.path = path;
+        btn.addEventListener("click", () => {
+          state.currentPath = btn.dataset.path;
+          renderFilesystem();
+        });
+        els.breadcrumbs.appendChild(btn);
+      }
+    }
+
+    async function renderSelectionSummary() {
+      const summary = await selectedSummary();
+      els.selectionSummary.textContent = summary.count
+        ? summary.count.toLocaleString() + " files selected · " + formatBytes(summary.size)
+        : "No files selected.";
+      els.downloadSelectedBtn.disabled = summary.count === 0;
+      els.deselectAllBtn.disabled = summary.count === 0;
+      const current = getNodeByPath(state.currentPath);
+      els.selectCurrentFolder.disabled = !current || current.fileCount === 0;
+      els.selectCurrentFolder.checked = isNodeFullySelected(current);
+    }
+
+    async function selectedSummary() {
+      let count = 0;
+      let size = 0;
+      const countedFiles = new Set();
+      for (const key of state.selectedKeys) {
+        const split = key.indexOf(":");
+        const type = key.slice(0, split);
+        const path = key.slice(split + 1);
+        if (type === "folder") {
+          if (hasSelectedAncestorFolder(path)) continue;
+          const node = getNodeByPath(path);
+          if (node) {
+            count += node.fileCount;
+            size += node.size;
+          }
+        } else if (type === "file" && !isCoveredBySelectedFolder(path) && !countedFiles.has(path)) {
+          const file = await getManifestFile(path);
+          if (file) {
+            countedFiles.add(path);
+            count += 1;
+            size += file.size || 0;
+          }
+        }
+      }
+      return { count, size };
+    }
+
+    function renderChunkTable() {
+      const index = state.index;
+      els.chunkRows.textContent = "";
+      if (!index) {
+        els.pageText.textContent = "No index loaded.";
+        els.prevPage.disabled = true;
+        els.nextPage.disabled = true;
+        return;
+      }
+      const start = state.page * PAGE_SIZE;
+      const end = Math.min(index.entryCount, start + PAGE_SIZE);
+      const frag = document.createDocumentFragment();
+      for (let i = start; i < end; i += 1) {
+        const entry = index.entryAt(i);
+        if (!entry) continue;
+        const tr = document.createElement("tr");
+        tr.dataset.chunkId = entry.id.toString();
+        tr.innerHTML =
+          "<td>" + (entry.index + 1).toLocaleString() + "</td>" +
+          "<td class=\"mono\">" + chunkIdHex(entry.id) + "</td>" +
+          "<td class=\"mono\">" + entry.offset + "</td>" +
+          "<td>" + formatBytes(entry.compressedSize) + "</td>" +
+          "<td>" + formatBytes(entry.uncompressedSize) + "</td>";
+        tr.addEventListener("click", () => selectChunk(entry));
+        frag.appendChild(tr);
+      }
+      els.chunkRows.appendChild(frag);
+      els.pageText.textContent = "Showing " + (start + 1).toLocaleString() + "-" + end.toLocaleString() +
+        " of " + index.entryCount.toLocaleString() + " chunks.";
+      els.prevPage.disabled = state.page === 0;
+      els.nextPage.disabled = end >= index.entryCount;
+    }
+
+    function parseJrmanManifest(bytes) {
+      const data = toUint8Array(bytes);
+      const offset = findJrmanOffset(data);
+      if (offset < 0) throw new Error("manifest did not start with JRMAN; first bytes: " + bytesToHex(data.subarray(0, 32)));
+      let lineStart = offset;
+      while (lineStart < data.length && data[lineStart] !== 0x0a) lineStart += 1;
+      if (lineStart < data.length) lineStart += 1;
+      const files = [];
+      const decoder = new TextDecoder("utf-8");
+      for (let i = lineStart; i <= data.length; i += 1) {
+        if (i !== data.length && data[i] !== 0x0a) continue;
+        let lineEnd = i;
+        if (lineEnd > lineStart && data[lineEnd - 1] === 0x0d) lineEnd -= 1;
+        if (lineEnd > lineStart) {
+          const line = decoder.decode(data.subarray(lineStart, lineEnd)).trim();
+          if (line[0] === "{") {
+            const item = JSON.parse(line);
+            if (item.fileId && item.path) files.push({
+              fileId: String(item.fileId).toUpperCase(),
+              path: String(item.path),
+              size: Number(item.size || 0),
+              langs: item.langs || "",
+              link: item.link || "",
+              permissions: item.permissions || 0,
+              time: item.time || 0,
+              chunks: parseManifestChunks(item.chunks),
+            });
+          }
+        }
+        lineStart = i + 1;
+      }
+      if (!files.length) {
+        const preview = decoder.decode(data.subarray(offset, Math.min(data.length, offset + 200)));
+        throw new Error("manifest parsed 0 files; preview: " + JSON.stringify(preview));
+      }
+      return files;
+    }
+
+    function parseManifestChunks(chunks) {
+      if (!Array.isArray(chunks)) return null;
+      return chunks.map(chunk => ({
+        chunkId: String(chunk.chunkId || "").toUpperCase().replace(/^0X/, ""),
+        hashType: Number(chunk.hash_type || 0),
+        uncompressedSize: Number(chunk.uncompressed_size || 0),
+      })).filter(chunk => chunk.chunkId && chunk.uncompressedSize > 0);
+    }
+
+    function isJrmanManifest(bytes) {
+      const data = toUint8Array(bytes);
+      const offset = findJrmanOffset(data);
+      if (offset < 0) return false;
+      const preview = new TextDecoder("utf-8").decode(data.subarray(offset, Math.min(data.length, offset + 4096)));
+      return preview.includes('"fileId"') && preview.includes('"path"');
+    }
+
+    function findJrmanOffset(bytes) {
+      const data = toUint8Array(bytes);
+      const limit = Math.min(data.length - 5, 1024);
+      for (let i = 0; i <= limit; i += 1) {
+        if (data[i] === 0x4a && data[i + 1] === 0x52 && data[i + 2] === 0x4d &&
+            data[i + 3] === 0x41 && data[i + 4] === 0x4e &&
+            (data[i + 5] === 0x0a || data[i + 5] === 0x0d)) return i;
+      }
+      return -1;
+    }
+
+    const manifestWorkerSource = `
+      const ackResolvers = new Map();
+      let nextAckId = 1;
+
+      self.onmessage = async event => {
+        if (event.data && event.data.type === "ack") {
+          const resolve = ackResolvers.get(event.data.id);
+          if (resolve) {
+            ackResolvers.delete(event.data.id);
+            resolve();
+          }
+          return;
+        }
+        try {
+          const compressed = new Uint8Array(event.data.bytes);
+          postMessage({ type: "progress", phase: "decompressing", percent: 5, text: "Decompressing manifest: 5%" });
+          const decompressed = await decompressZstd(compressed, bytes => {
+            return findJrmanOffset(bytes) >= 0 && previewHasRecords(bytes);
+          });
+          postMessage({ type: "progress", phase: "decompressing", percent: 100, text: "Decompressing manifest: 100%" });
+          const total = await parseJrmanManifest(decompressed, (percent) => {
+            postMessage({ type: "progress", phase: "parsing", percent, text: "Parsing manifest: " + formatProgressPercent(percent) + "%" });
+          }, async (batch, percent) => {
+            await sendFiles(batch, percent);
+          });
+          postMessage({ type: "done", total });
+        } catch (error) {
+          postMessage({ type: "error", message: error && error.message ? error.message : String(error) });
+        }
+      };
+
+      async function decompressZstd(bytes, validate) {
+        const attempts = [];
+        const accept = output => {
+          const normalized = toUint8Array(output);
+          if (validate && !validate(normalized)) throw new Error("decompressed output failed validation");
+          return normalized;
+        };
+        if (typeof DecompressionStream === "function") {
+          try {
+            const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("zstd"));
+            return accept(new Uint8Array(await new Response(stream).arrayBuffer()));
+          } catch (error) {
+            attempts.push("native: " + error.message);
+          }
+        }
+        try {
+          const fzstd = await import("https://cdn.jsdelivr.net/npm/fzstd/+esm");
+          const decompress = fzstd.decompress || (fzstd.default && fzstd.default.decompress);
+          if (typeof decompress !== "function") throw new Error("fzstd did not provide a decompress function");
+          return accept(decompress(bytes));
+        } catch (error) {
+          attempts.push("fzstd: " + error.message);
+        }
+        try {
+          const zstddec = await import("https://esm.sh/zstddec");
+          const Decoder = zstddec.ZSTDDecoder || (zstddec.default && zstddec.default.ZSTDDecoder);
+          if (!Decoder) throw new Error("zstddec did not export ZSTDDecoder");
+          const decoder = new Decoder();
+          if (typeof decoder.init === "function") await decoder.init();
+          if (typeof decoder.decode === "function") return accept(decoder.decode(bytes));
+          if (typeof decoder.decompress === "function") return accept(decoder.decompress(bytes));
+          throw new Error("zstddec decoder has no decode/decompress method");
+        } catch (error) {
+          attempts.push("zstddec: " + error.message);
+        }
+        throw new Error("zstd decompression failed (" + attempts.join("; ") + ")");
+      }
+
+      function sendFiles(batch, percent) {
+        const id = nextAckId++;
+        postMessage({ type: "files", id, files: batch, percent });
+        return new Promise(resolve => ackResolvers.set(id, resolve));
+      }
+
+      async function parseJrmanManifest(bytes, onProgress, onFiles) {
+        const data = toUint8Array(bytes);
+        const offset = findJrmanOffset(data);
+        if (offset < 0) throw new Error("manifest did not start with JRMAN");
+        let lineStart = offset;
+        while (lineStart < data.length && data[lineStart] !== 0x0a) lineStart += 1;
+        if (lineStart < data.length) lineStart += 1;
+        const batch = [];
+        const decoder = new TextDecoder("utf-8");
+        let nextProgress = 0;
+        let fileCount = 0;
+        for (let i = lineStart; i <= data.length; i += 1) {
+          if (i !== data.length && data[i] !== 0x0a) continue;
+          let lineEnd = i;
+          if (lineEnd > lineStart && data[lineEnd - 1] === 0x0d) lineEnd -= 1;
+          if (lineEnd > lineStart) {
+            const line = decoder.decode(data.subarray(lineStart, lineEnd)).trim();
+            if (line[0] === "{") {
+              const item = JSON.parse(line);
+              if (item.fileId && item.path) {
+                batch.push({
+                  fileId: String(item.fileId).toUpperCase(),
+                  path: String(item.path),
+                  size: Number(item.size || 0),
+                  langs: item.langs || "",
+                  link: item.link || "",
+                  permissions: item.permissions || 0,
+                  time: item.time || 0,
+                  chunks: parseManifestChunks(item.chunks),
+                });
+                fileCount += 1;
+              }
+            }
+          }
+          lineStart = i + 1;
+          if (i >= nextProgress) {
+            const percent = progressPercent(i, data.length);
+            await flushFiles(percent);
+            onProgress(percent);
+            nextProgress = i + 4 * 1024 * 1024;
+          }
+        }
+        await flushFiles(100);
+        onProgress(100);
+        if (!fileCount) throw new Error("manifest parsed 0 files");
+        return fileCount;
+
+        async function flushFiles(percent) {
+          if (!batch.length) return;
+          await onFiles(batch.splice(0, batch.length), percent);
+        }
+      }
+
+      function progressPercent(done, total) {
+        if (!total || done <= 0) return 0;
+        return Math.min(99.9, done / total * 100);
+      }
+
+      function formatProgressPercent(percent) {
+        if (!Number.isFinite(percent)) return "0";
+        const clamped = Math.max(0, Math.min(100, percent));
+        if (clamped > 0 && clamped < 0.1) return "0.1";
+        return clamped < 10 ? clamped.toFixed(1) : Math.floor(clamped).toString();
+      }
+
+      function parseManifestChunks(chunks) {
+        if (!Array.isArray(chunks)) return null;
+        return chunks.map(chunk => ({
+          chunkId: String(chunk.chunkId || "").toUpperCase().replace(/^0X/, ""),
+          hashType: Number(chunk.hash_type || 0),
+          uncompressedSize: Number(chunk.uncompressed_size || 0),
+        })).filter(chunk => chunk.chunkId && chunk.uncompressedSize > 0);
+      }
+
+      function previewHasRecords(bytes) {
+        const data = toUint8Array(bytes);
+        const offset = findJrmanOffset(data);
+        if (offset < 0) return false;
+        const preview = new TextDecoder("utf-8").decode(data.subarray(offset, Math.min(data.length, offset + 4096)));
+        return preview.includes('"fileId"') && preview.includes('"path"');
+      }
+
+      function findJrmanOffset(bytes) {
+        const data = toUint8Array(bytes);
+        const limit = Math.min(data.length - 5, 1024);
+        for (let i = 0; i <= limit; i += 1) {
+          if (data[i] === 0x4a && data[i + 1] === 0x52 && data[i + 2] === 0x4d &&
+              data[i + 3] === 0x41 && data[i + 4] === 0x4e &&
+              (data[i + 5] === 0x0a || data[i + 5] === 0x0d)) return i;
+        }
+        return -1;
+      }
+
+      function toUint8Array(bytes) {
+        if (bytes instanceof Uint8Array) return bytes;
+        if (bytes instanceof ArrayBuffer) return new Uint8Array(bytes);
+        if (ArrayBuffer.isView(bytes)) return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        throw new TypeError("expected bytes");
+      }
+    `;
+
+    function loadManifestInWorker(bytes, labelPrefix, onFiles) {
+      return new Promise((resolve, reject) => {
+        const workerUrl = URL.createObjectURL(new Blob([manifestWorkerSource], { type: "text/javascript" }));
+        const worker = new Worker(workerUrl, { type: "module" });
+        worker.onmessage = event => {
+          const message = event.data;
+          if (message.type === "progress") {
+            els.manifestProgress.style.width = message.percent + "%";
+            els.manifestProgressText.textContent = labelPrefix ? labelPrefix + ": " + message.text : message.text;
+          } else if (message.type === "files") {
+            Promise.resolve(onFiles ? onFiles(message.files, message.percent) : undefined).then(() => {
+              worker.postMessage({ type: "ack", id: message.id });
+            }, error => {
+              worker.terminate();
+              URL.revokeObjectURL(workerUrl);
+              reject(error);
+            });
+          } else if (message.type === "done") {
+            worker.terminate();
+            URL.revokeObjectURL(workerUrl);
+            resolve(message.total || 0);
+          } else if (message.type === "error") {
+            worker.terminate();
+            URL.revokeObjectURL(workerUrl);
+            reject(new Error(message.message));
+          }
+        };
+        worker.onerror = error => {
+          worker.terminate();
+          URL.revokeObjectURL(workerUrl);
+          reject(new Error(error.message || "manifest worker failed"));
+        };
+        const source = toUint8Array(bytes);
+        const data = source.slice();
+        worker.postMessage({ bytes: data.buffer }, [data.buffer]);
+      });
+    }
+
+    async function fetchWholeByRange(url, progressEl, progressTextEl) {
+      const source = new ArchiveRangeReader(url);
+      await source.read(0n, 1);
+      if (source.size === null) throw new Error("could not determine remote file size");
+      if (source.size > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("remote file is too large for this browser session");
+      const total = Number(source.size);
+      if (progressEl) progressEl.style.width = "0%";
+      if (progressTextEl) progressTextEl.textContent = "Downloading manifest from Archive.org: 0%";
+      log("GET 0-" + (source.size - 1n));
+      const response = await fetch(url, { headers: { Range: "bytes=0-" + (source.size - 1n) } });
+      if (response.status !== 206) throw new Error("expected HTTP 206 Partial Content, received HTTP " + response.status);
+      if (!response.body) {
+        const fallback = new Uint8Array(await response.arrayBuffer());
+        if (progressEl) progressEl.style.width = "100%";
+        if (progressTextEl) progressTextEl.textContent = "Downloading manifest from Archive.org: 100%";
+        return { bytes: fallback, size: source.size };
+      }
+      const reader = response.body.getReader();
+      const chunks = [];
+      let received = 0;
+      const startedAt = performance.now();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        const percent = Math.min(100, received / total * 100);
+        if (progressEl) progressEl.style.width = percent + "%";
+        if (progressTextEl) progressTextEl.textContent = "Downloading manifest from Archive.org: " +
+          formatPercent(received, total) + "% (" + formatBytes(received) + " / " + formatBytes(total) +
+          ", ETA " + formatEta(received, total, startedAt) + ")";
+      }
+      if (received !== total) throw new Error("manifest download was incomplete: expected " + total + " bytes, received " + received);
+      return { bytes: concatUint8Arrays(chunks, received), size: source.size };
+    }
+
+    function concatUint8Arrays(parts, total) {
+      const out = new Uint8Array(total);
+      let offset = 0;
+      for (const part of parts) {
+        out.set(part, offset);
+        offset += part.length;
+      }
+      return out;
+    }
+
+    const sqliteWorkerSource = `
+      let sqlite3 = null;
+      let db = null;
+      let persistent = false;
+      let storageMode = "transient";
+      let storageReason = "";
+      let importStmt = null;
+      let importOpen = false;
+
+      self.onmessage = async event => {
+        const message = event.data || {};
+        try {
+          if (message.type === "init") {
+            await initSqlite(message.url);
+            postMessage({ id: message.id, ok: true, persistent, storageMode, storageReason });
+            return;
+          }
+          if (!db) throw new Error("SQLite is not initialized");
+          if (message.type === "clear") {
+            closeImport(false);
+            db.exec("DELETE FROM files");
+            db.exec("DELETE FROM folders");
+            postMessage({ id: message.id, ok: true });
+          } else if (message.type === "beginImport") {
+            db.exec("DELETE FROM folders");
+            beginImport();
+            postMessage({ id: message.id, ok: true });
+          } else if (message.type === "insertFiles") {
+            insertFiles(message.files || []);
+            postMessage({ id: message.id, ok: true, count: (message.files || []).length });
+          } else if (message.type === "commitImport") {
+            commitImport();
+            postMessage({ id: message.id, ok: true });
+          } else if (message.type === "finishImport") {
+            closeImport(true);
+            postMessage({ id: message.id, ok: true });
+          } else if (message.type === "abortImport") {
+            closeImport(false);
+            postMessage({ id: message.id, ok: true });
+          } else if (message.type === "getFile") {
+            postMessage({ id: message.id, ok: true, file: selectOne("SELECT * FROM files WHERE path = ?", [message.path]) });
+          } else if (message.type === "listParent") {
+            postMessage({ id: message.id, ok: true, files: selectAll("SELECT * FROM files WHERE parent_path = ? ORDER BY name", [message.parentPath || ""]) });
+          } else if (message.type === "filesUnder") {
+            const prefix = message.folderPath ? String(message.folderPath).toLowerCase() + "/" : "";
+            const sql = prefix
+              ? "SELECT * FROM files WHERE lower_path >= ? AND lower_path < ? ORDER BY path"
+              : "SELECT * FROM files ORDER BY path";
+            const bind = prefix ? [prefix, prefix + "\\uffff"] : [];
+            postMessage({ id: message.id, ok: true, files: selectAll(sql, bind) });
+          } else if (message.type === "search") {
+            const like = "%" + String(message.query || "").toLowerCase().replace(/[\\\\%_]/g, "\\\\$&") + "%";
+            const offset = Math.max(0, Number(message.page || 0)) * Math.max(1, Number(message.pageSize || 100));
+            const limit = Math.max(1, Number(message.pageSize || 100));
+            const totalRow = selectOne("SELECT COUNT(*) AS total FROM files WHERE lower_path LIKE ? ESCAPE '\\\\'", [like]);
+            const files = selectAll("SELECT * FROM files WHERE lower_path LIKE ? ESCAPE '\\\\' ORDER BY path LIMIT ? OFFSET ?", [like, limit, offset]);
+            postMessage({ id: message.id, ok: true, rows: files, total: totalRow ? Number(totalRow.total || 0) : 0 });
+          } else if (message.type === "buildTree") {
+            postMessage({ id: message.id, ok: true, folders: buildTree(message.totalFiles || 0, message.id) });
+          } else if (message.type === "loadFolders") {
+            postMessage({ id: message.id, ok: true, folders: selectFolderRows(message.id) });
+          } else if (message.type === "count") {
+            const row = selectOne("SELECT COUNT(*) AS total FROM files", []);
+            postMessage({ id: message.id, ok: true, total: row ? Number(row.total || 0) : 0 });
+          } else if (message.type === "countFolders") {
+            const row = selectOne("SELECT COUNT(*) AS total FROM folders", []);
+            postMessage({ id: message.id, ok: true, total: row ? Number(row.total || 0) : 0 });
+          } else {
+            throw new Error("unknown SQLite worker command: " + message.type);
+          }
+        } catch (error) {
+          postMessage({ id: message.id, ok: false, error: error && error.message ? error.message : String(error) });
+        }
+      };
+
+      async function initSqlite(url) {
+        if (db) return;
+        const module = await import(url);
+        const candidate = module.default || module.sqlite3InitModule || module.sqlite3 || module;
+        sqlite3 = typeof candidate === "function" ? await candidate() : candidate;
+        if (!sqlite3 || !sqlite3.oo1) throw new Error("SQLite module did not expose the oo1 API");
+        const attempts = [];
+        if (typeof sqlite3.installOpfsSAHPoolVfs === "function") {
+          try {
+            const pool = await sqlite3.installOpfsSAHPoolVfs({
+              name: "rads-opfs-sahpool",
+              directory: "/rads-archive-sahpool",
+              initialCapacity: 8,
+            });
+            db = new pool.OpfsSAHPoolDb("/rads-archive-manifest.sqlite3", "c");
+            persistent = true;
+            storageMode = "opfs-sahpool";
+          } catch (error) {
+            attempts.push("opfs-sahpool: " + (error && error.message ? error.message : String(error)));
+          }
+        }
+        if (!db && sqlite3.oo1.OpfsDb) {
+          try {
+            db = new sqlite3.oo1.OpfsDb("/rads-archive-manifest.sqlite3", "c");
+            persistent = true;
+            storageMode = "opfs";
+          } catch (error) {
+            attempts.push("opfs: " + (error && error.message ? error.message : String(error)));
+          }
+        }
+        if (!db) {
+          db = new sqlite3.oo1.DB("/rads-archive-manifest.sqlite3", "ct");
+          persistent = false;
+          storageMode = "transient";
+          storageReason = attempts.join("; ") || "no OPFS VFS was exposed by SQLite";
+        }
+        db.exec([
+          "PRAGMA journal_mode=WAL",
+          "PRAGMA synchronous=NORMAL",
+          "PRAGMA temp_store=MEMORY",
+          "CREATE TABLE IF NOT EXISTS files (path TEXT PRIMARY KEY, lower_path TEXT NOT NULL, parent_path TEXT NOT NULL, name TEXT NOT NULL, file_id TEXT NOT NULL, size INTEGER NOT NULL, langs TEXT, link TEXT, permissions INTEGER, time INTEGER, chunks_json TEXT)",
+          "CREATE TABLE IF NOT EXISTS folders (path TEXT PRIMARY KEY, size INTEGER NOT NULL, file_count INTEGER NOT NULL)",
+          "CREATE INDEX IF NOT EXISTS idx_files_parent_name ON files(parent_path, name)",
+          "CREATE INDEX IF NOT EXISTS idx_files_lower_path ON files(lower_path)",
+          "CREATE INDEX IF NOT EXISTS idx_files_file_id ON files(file_id)"
+        ].join(";"));
+      }
+
+      function insertFiles(files) {
+        if (!importOpen) beginImport();
+        try {
+          for (const file of files) {
+            importStmt.bind([
+              file.path,
+              file.lowerPath,
+              file.parentPath,
+              file.name,
+              file.fileId,
+              file.size || 0,
+              file.langs || "",
+              file.link || "",
+              file.permissions || 0,
+              file.time || 0,
+              file.chunks ? JSON.stringify(file.chunks) : null,
+            ]);
+            importStmt.step();
+            importStmt.reset();
+            if (importStmt.clearBindings) importStmt.clearBindings();
+          }
+        } catch (error) {
+          closeImport(false);
+          throw error;
+        }
+      }
+
+      function beginImport() {
+        if (importOpen) return;
+        db.exec("BEGIN IMMEDIATE");
+        importStmt = db.prepare("INSERT OR REPLACE INTO files(path, lower_path, parent_path, name, file_id, size, langs, link, permissions, time, chunks_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        importOpen = true;
+      }
+
+      function closeImport(commit) {
+        if (!importOpen) return;
+        try {
+          if (importStmt) importStmt.finalize();
+          importStmt = null;
+          db.exec(commit ? "COMMIT" : "ROLLBACK");
+        } finally {
+          importOpen = false;
+        }
+      }
+
+      function commitImport() {
+        if (!importOpen) {
+          beginImport();
+          return;
+        }
+        closeImport(true);
+        beginImport();
+      }
+
+      function selectAll(sql, bind) {
+        const rows = [];
+        db.exec({ sql, bind, rowMode: "object", callback: row => rows.push(rowToFile(row)) });
+        return rows;
+      }
+
+      function selectOne(sql, bind) {
+        let result = null;
+        db.exec({ sql, bind, rowMode: "object", callback: row => {
+          result = rowToFile(row);
+          return false;
+        }});
+        return result;
+      }
+
+      function rowToFile(row) {
+        if (!row) return null;
+        if ("total" in row) return row;
+        return {
+          fileId: row.file_id,
+          path: row.path,
+          lowerPath: row.lower_path,
+          parentPath: row.parent_path,
+          name: row.name,
+          size: Number(row.size || 0),
+          langs: row.langs || "",
+          link: row.link || "",
+          permissions: Number(row.permissions || 0),
+          time: Number(row.time || 0),
+          chunks: row.chunks_json ? JSON.parse(row.chunks_json) : null,
+        };
+      }
+
+      function buildTree(totalFiles, requestId) {
+        const folders = new Map();
+        folders.set("", { path: "", size: 0, fileCount: 0 });
+        let scanned = 0;
+        db.exec({ sql: "SELECT path, size FROM files", rowMode: "object", callback: row => {
+          const path = String(row.path || "");
+          const size = Number(row.size || 0);
+          const parts = path.split("/").filter(Boolean);
+          addFolder("", size);
+          let folderPath = "";
+          for (let i = 0; i < parts.length - 1; i += 1) {
+            folderPath = folderPath ? folderPath + "/" + parts[i] : parts[i];
+            addFolder(folderPath, size);
+          }
+          scanned += 1;
+          if (scanned % 50000 === 0) {
+            postMessage({ id: requestId, progress: true, scanned, total: totalFiles });
+          }
+        }});
+        const rows = Array.from(folders.values());
+        saveFolderRows(rows);
+        return rows;
+
+        function addFolder(path, size) {
+          let folder = folders.get(path);
+          if (!folder) {
+            folder = { path, size: 0, fileCount: 0 };
+            folders.set(path, folder);
+          }
+          folder.size += size;
+          folder.fileCount += 1;
+        }
+      }
+
+      function saveFolderRows(rows) {
+        db.exec("DELETE FROM folders");
+        db.exec("BEGIN IMMEDIATE");
+        const stmt = db.prepare("INSERT OR REPLACE INTO folders(path, size, file_count) VALUES (?, ?, ?)");
+        try {
+          for (const row of rows) {
+            stmt.bind([row.path, row.size || 0, row.fileCount || 0]);
+            stmt.step();
+            stmt.reset();
+            if (stmt.clearBindings) stmt.clearBindings();
+          }
+          db.exec("COMMIT");
+        } catch (error) {
+          try { db.exec("ROLLBACK"); } catch (_) {}
+          throw error;
+        } finally {
+          stmt.finalize();
+        }
+      }
+
+      function selectFolderRows(requestId) {
+        let total = 0;
+        try {
+          db.exec({ sql: "SELECT COUNT(*) AS total FROM folders", rowMode: "object", callback: row => {
+            total = Number(row.total || 0);
+            return false;
+          }});
+        } catch (_) {}
+        const rows = [];
+        db.exec({ sql: "SELECT path, size, file_count FROM folders ORDER BY path", rowMode: "object", callback: row => {
+          rows.push({ path: row.path, size: Number(row.size || 0), fileCount: Number(row.file_count || 0) });
+          if (requestId && rows.length % 25000 === 0) {
+            postMessage({ id: requestId, progress: true, loaded: rows.length, total });
+          }
+        }});
+        if (requestId) postMessage({ id: requestId, progress: true, loaded: rows.length, total });
+        return rows;
+      }
+    `;
+
+    function initSqliteStore() {
+      if (state.sqliteReady) return state.sqliteReady;
+      state.sqliteReady = new Promise((resolve, reject) => {
+        const workerUrl = URL.createObjectURL(new Blob([sqliteWorkerSource], { type: "text/javascript" }));
+        const worker = new Worker(workerUrl, { type: "module" });
+        state.sqliteWorker = worker;
+        worker.onmessage = event => {
+          const message = event.data || {};
+          if (message.progress && message.id) {
+            const pending = state.sqlitePending.get(message.id);
+            if (pending && pending.onProgress) pending.onProgress(message);
+            return;
+          }
+          const pending = state.sqlitePending.get(message.id);
+          if (!pending) return;
+          state.sqlitePending.delete(message.id);
+          if (message.ok) pending.resolve(message);
+          else pending.reject(new Error(message.error || "SQLite worker failed"));
+        };
+        worker.onerror = error => reject(new Error(error.message || "SQLite worker failed"));
+        sqliteRequest("init", { url: SQLITE_WASM_URL }).then(message => {
+          state.sqlitePersistent = !!message.persistent;
+          if (message.persistent) {
+            log("SQLite manifest store using " + (message.storageMode || "OPFS"));
+          } else {
+            const reason = message.storageReason ? ": " + message.storageReason : "";
+            log("SQLite manifest store is transient; OPFS unavailable" + reason);
+            reject(new Error("SQLite persistent OPFS unavailable" + reason));
+            return;
+          }
+          resolve();
+        }, reject);
+      });
+      return state.sqliteReady;
+    }
+
+    function sqliteRequest(type, payload, onProgress) {
+      return new Promise((resolve, reject) => {
+        const worker = state.sqliteWorker;
+        if (!worker) {
+          reject(new Error("SQLite worker is not ready"));
+          return;
+        }
+        const id = state.sqliteNextId++;
+        state.sqlitePending.set(id, { resolve, reject, onProgress });
+        worker.postMessage(Object.assign({ id, type }, payload || {}));
+      });
+    }
+
+    function openCache() {
+      return new Promise((resolve, reject) => {
+        if (!("indexedDB" in window)) {
+          reject(new Error("IndexedDB is unavailable"));
+          return;
+        }
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          reject(new Error("IndexedDB open timed out; close other RADS Web tabs and retry"));
+        }, 3500);
+        const finish = callback => value => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          callback(value);
+        };
+        const request = indexedDB.open(CACHE_DB, 2);
+        request.onupgradeneeded = () => {
+          const db = request.result;
+          if (!db.objectStoreNames.contains(CACHE_STORE)) db.createObjectStore(CACHE_STORE);
+          if (!db.objectStoreNames.contains(MANIFEST_FILE_STORE)) {
+            const store = db.createObjectStore(MANIFEST_FILE_STORE, { keyPath: "path" });
+            store.createIndex("parentPath", "parentPath", { unique: false });
+            store.createIndex("lowerPath", "lowerPath", { unique: false });
+          }
+        };
+        request.onsuccess = finish(() => resolve(request.result));
+        request.onerror = finish(() => reject(request.error || new Error("IndexedDB open failed")));
+        request.onblocked = finish(() => reject(new Error("IndexedDB upgrade is blocked by another open tab")));
+      });
+    }
+
+    async function cacheGet(key) {
+      const db = await openCache();
+      try {
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction(CACHE_STORE, "readonly");
+          const request = tx.objectStore(CACHE_STORE).get(key);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => reject(request.error);
+        });
+      } finally {
+        db.close();
+      }
+    }
+
+    async function cachePut(key, value) {
+      const db = await openCache();
+      try {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(CACHE_STORE, "readwrite");
+          tx.objectStore(CACHE_STORE).put(value, key);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    }
+
+    async function cacheDelete(key) {
+      const db = await openCache();
+      try {
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(CACHE_STORE, "readwrite");
+          tx.objectStore(CACHE_STORE).delete(key);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      } finally {
+        db.close();
+      }
+    }
+
+    async function clearManifestFileCache() {
+      await initSqliteStore();
+      await sqliteRequest("clear");
+    }
+
+    async function countManifestFiles() {
+      await initSqliteStore();
+      const result = await sqliteRequest("count");
+      return Number(result.total || 0);
+    }
+
+    async function countFolderRows() {
+      await initSqliteStore();
+      const result = await sqliteRequest("countFolders");
+      return Number(result.total || 0);
+    }
+
+    async function putManifestFileBatch(files) {
+      await initSqliteStore();
+      await sqliteRequest("insertFiles", { files: files.map(normalizeManifestFile) });
+    }
+
+    async function beginManifestFileImport() {
+      await initSqliteStore();
+      await sqliteRequest("beginImport");
+    }
+
+    async function finishManifestFileImport() {
+      await initSqliteStore();
+      await sqliteRequest("finishImport");
+    }
+
+    async function commitManifestFileImport() {
+      await initSqliteStore();
+      await sqliteRequest("commitImport");
+    }
+
+    async function abortManifestFileImport() {
+      await initSqliteStore();
+      await sqliteRequest("abortImport");
+    }
+
+    async function getManifestFile(path) {
+      await initSqliteStore();
+      const result = await sqliteRequest("getFile", { path });
+      return result.file || null;
+    }
+
+    async function getManifestFilesByParent(parentPath) {
+      await initSqliteStore();
+      const result = await sqliteRequest("listParent", { parentPath: parentPath || "" });
+      return result.files || [];
+    }
+
+    async function getManifestFilesUnderFolder(folderPath) {
+      await initSqliteStore();
+      const result = await sqliteRequest("filesUnder", { folderPath: folderPath || "" });
+      return result.files || [];
+    }
+
+    async function searchManifestFiles(query, page, token) {
+      await initSqliteStore();
+      const result = await sqliteRequest("search", { query, page, pageSize: FILE_PAGE_SIZE });
+      if (token !== state.searchToken) return { rows: [], total: 0, cancelled: true };
+      return {
+        rows: (result.rows || []).map(file => makeFile(file, getNodeByPath(file.parentPath) || state.fsRoot)),
+        total: Number(result.total || 0),
+        cancelled: false,
+      };
+    }
+
+    async function cacheEntries() {
+      const db = await openCache();
+      try {
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction(CACHE_STORE, "readonly");
+          const request = tx.objectStore(CACHE_STORE).openCursor();
+          const entries = [];
+          request.onsuccess = () => {
+            const cursor = request.result;
+            if (!cursor) {
+              resolve(entries);
+              return;
+            }
+            entries.push({ key: cursor.key, value: cursor.value });
+            cursor.continue();
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } finally {
+        db.close();
+      }
+    }
+
+    async function exportInitialCache() {
+      const entries = (await cacheEntries()).filter(entry =>
+        entry.key === MANIFEST_CACHE_KEY || String(entry.key).startsWith("bundle-toc:")
+      );
+      if (!entries.length) throw new Error("no manifest or bundle index cache is available to export");
+      const parts = [];
+      let offset = 0;
+      const metadata = {
+        type: "rads-archive-explorer-cache",
+        version: 2,
+        exportedAt: new Date().toISOString(),
+        entries: [],
+      };
+
+      for (const entry of entries) {
+        if (!entry.value || !entry.value.bytes) continue;
+        const bytes = toUint8Array(entry.value.bytes);
+        const value = Object.assign({}, entry.value);
+        delete value.bytes;
+        metadata.entries.push({
+          key: entry.key,
+          value,
+          offset,
+          length: bytes.byteLength,
+        });
+        parts.push(bytes);
+        offset += bytes.byteLength;
+      }
+
+      if (!metadata.entries.length) throw new Error("no byte cache entries are available to export");
+      const metaBytes = new TextEncoder().encode(JSON.stringify(metadata));
+      const header = new Uint8Array(12);
+      header.set([0x52, 0x41, 0x44, 0x53, 0x43, 0x41, 0x43, 0x48], 0);
+      new DataView(header.buffer).setUint32(8, metaBytes.byteLength, true);
+      downloadBlobParts([header, metaBytes].concat(parts), "rads-archive-cache.radscache");
+      log("Exported " + entries.length + " cache entries");
+    }
+
+    async function importInitialCache(file) {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (bytes.length < 12 || bytesToHex(bytes.subarray(0, 8)) !== "5241445343414348") {
+        throw new Error("invalid cache export file");
+      }
+      const metaLength = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(8, true);
+      const metaStart = 12;
+      const dataStart = metaStart + metaLength;
+      if (dataStart > bytes.length) throw new Error("invalid cache export metadata length");
+      const payload = JSON.parse(new TextDecoder("utf-8").decode(bytes.subarray(metaStart, dataStart)));
+      if (!payload || payload.type !== "rads-archive-explorer-cache" || payload.version !== 2 || !Array.isArray(payload.entries)) {
+        throw new Error("invalid cache export metadata");
+      }
+      for (const entry of payload.entries) {
+        if (entry.key !== MANIFEST_CACHE_KEY && !String(entry.key).startsWith("bundle-toc:")) continue;
+        const start = dataStart + entry.offset;
+        const end = start + entry.length;
+        if (start < dataStart || end > bytes.length) throw new Error("invalid cache payload range");
+        await cachePut(entry.key, Object.assign({}, entry.value, {
+          bytes: bytes.slice(start, end),
+        }));
+      }
+      await refreshCacheSize();
+      log("Imported " + payload.entries.length + " cache entries");
+    }
+
+    function downloadBlobParts(parts, name) {
+      const url = URL.createObjectURL(new Blob(parts, { type: "application/octet-stream" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function cacheSizeBytes() {
+      const db = await openCache();
+      try {
+        return await new Promise((resolve, reject) => {
+          const tx = db.transaction([CACHE_STORE, MANIFEST_FILE_STORE], "readonly");
+          let total = 0;
+          let pending = 2;
+          const finish = () => {
+            pending -= 1;
+            if (pending === 0) resolve(total);
+          };
+          for (const storeName of [CACHE_STORE, MANIFEST_FILE_STORE]) {
+            const request = tx.objectStore(storeName).openCursor();
+            request.onsuccess = () => {
+              const cursor = request.result;
+              if (!cursor) {
+                finish();
+                return;
+              }
+              total += estimateValueSize(cursor.value);
+              cursor.continue();
+            };
+            request.onerror = () => reject(request.error);
+          }
+        });
+      } finally {
+        db.close();
+      }
+    }
+
+    function estimateValueSize(value) {
+      if (!value) return 0;
+      if (value instanceof Uint8Array) return value.byteLength;
+      if (value instanceof ArrayBuffer) return value.byteLength;
+      if (ArrayBuffer.isView(value)) return value.byteLength;
+      if (Array.isArray(value)) return value.reduce((sum, item) => sum + estimateValueSize(item), 0);
+      if (typeof value === "object") {
+        let total = 0;
+        for (const item of Object.values(value)) total += estimateValueSize(item);
+        return total;
+      }
+      if (typeof value === "string") return value.length * 2;
+      return 8;
+    }
+
+    async function refreshCacheSize() {
+      try {
+        els.cacheSizeText.textContent = formatBytes(await cacheSizeBytes());
+      } catch (error) {
+        els.cacheSizeText.textContent = "Unavailable";
+        log("Cache size unavailable: " + error.message);
+      }
+    }
+
+    function clearLocalCache() {
+      return new Promise(async (resolve, reject) => {
+        try {
+          if (state.sqliteWorker) await clearManifestFileCache();
+        } catch (error) {
+          log("SQLite manifest cache clear failed: " + error.message);
+        }
+        const request = indexedDB.deleteDatabase(CACHE_DB);
+        request.onsuccess = resolve;
+        request.onerror = () => reject(request.error);
+        request.onblocked = () => reject(new Error("cache deletion is blocked by another open tab"));
+      });
+    }
+
+    function selectChunk(entry, preserveFile) {
+      state.selected = entry;
+      if (!preserveFile) state.selectedFile = null;
+      state.lastBytes = null;
+      state.lastName = chunkIdHex(entry.id) + ".zst";
+      els.selId.textContent = chunkIdHex(entry.id);
+      els.selOffset.textContent = entry.offset.toString();
+      els.selComp.textContent = formatBytes(entry.compressedSize) + " (" + entry.compressedSize + ")";
+      els.selUncomp.textContent = formatBytes(entry.uncompressedSize) + " (" + entry.uncompressedSize + ")";
+      els.fetchChunkBtn.disabled = false;
+      els.decompressBtn.disabled = false;
+      els.downloadBtn.disabled = true;
+      els.chunkPreview.textContent = "";
+    }
+
+    function selectManifestFile(file) {
+      state.selectedFile = file;
+      state.lastBytes = null;
+      state.lastName = safeDownloadName(file.path);
+      els.downloadBtn.disabled = true;
+      if (!state.index) {
+        els.chunkPreview.textContent = "Bundle index is still loading.\n\n" + file.path;
+        return;
+      }
+      let entry = null;
+      let chunkNote = "";
+      if (file.chunks && file.chunks.length) {
+        const entries = resolveEntriesForChunkRefs(file.chunks);
+        const first = file.chunks[0];
+        entry = entries.get(parseChunkId("0x" + first.chunkId).toString()) || null;
+        chunkNote = "Manifest file has " + file.chunks.length.toLocaleString() + " payload chunk" + (file.chunks.length === 1 ? "" : "s") + ". Showing the first payload chunk.";
+      } else {
+        entry = state.index.get("0x" + file.fileId);
+        chunkNote = "Manifest file ID points to a packed chunk list. Download reconstructs the listed payload chunks.";
+      }
+      if (!entry) {
+        state.selected = null;
+        els.selId.textContent = file.fileId;
+        els.selOffset.textContent = "-";
+        els.selComp.textContent = "-";
+        els.selUncomp.textContent = formatBytes(file.size) + " (" + file.size + ")";
+        els.fetchChunkBtn.disabled = true;
+        els.decompressBtn.disabled = true;
+        els.chunkPreview.textContent = "No matching chunk was found for this manifest file ID.\n\n" + file.path;
+        log("Manifest file did not resolve to a bundle chunk: " + file.fileId);
+        return;
+      }
+      selectChunk(entry, true);
+      state.lastName = safeDownloadName(file.path);
+      els.chunkPreview.textContent = file.path + "\n\n" + chunkNote + "\n\nSelected bundle chunk " + chunkIdHex(entry.id) + ".";
+      log("Selected manifest file " + file.path);
+    }
+
+    async function fetchSelectedCompressed() {
+      if (!state.source || !state.selected) return null;
+      const entry = state.selected;
+      const bytes = await state.source.read(entry.offset, entry.compressedSize);
+      state.lastBytes = bytes;
+      state.lastName = chunkIdHex(entry.id) + ".zst";
+      els.downloadBtn.disabled = true;
+      els.chunkPreview.textContent = hexPreview(bytes);
+      log("Fetched compressed chunk " + chunkIdHex(entry.id) + " (" + bytes.length + " bytes)");
+      return bytes;
+    }
+
+    async function decompressSelected() {
+      if (!state.selected) return;
+      const compressed = state.lastBytes && state.lastName.endsWith(".zst") ? state.lastBytes : await fetchSelectedCompressed();
+      setStatus("", "Decompressing");
+      const bytes = await decompressZstdInWorker(compressed, state.selected.uncompressedSize);
+      if (bytes.length !== state.selected.uncompressedSize) {
+        throw new Error("decompressed size mismatch: expected " + state.selected.uncompressedSize + ", got " + bytes.length);
+      }
+      state.lastBytes = bytes;
+      state.lastName = state.selectedFile ? safeDownloadName(state.selectedFile.path) : chunkIdHex(state.selected.id) + ".chunk";
+      els.downloadBtn.disabled = false;
+      els.chunkPreview.textContent = hexPreview(bytes);
+      log("Decompressed chunk " + chunkIdHex(state.selected.id) + " (" + bytes.length + " bytes)");
+      return bytes;
+    }
+
+    async function decompressZstd(bytes, expectedSize, validate) {
+      const attempts = [];
+      const accept = output => {
+        const normalized = toUint8Array(output);
+        if (expectedSize != null && normalized.length !== expectedSize) {
+          throw new Error("decompressed size mismatch (expected " + expectedSize + ", got " + normalized.length + ")");
+        }
+        if (validate && !validate(normalized)) throw new Error("decompressed output failed validation");
+        return normalized;
+      };
+      if (typeof DecompressionStream === "function") {
+        try {
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("zstd"));
+          return accept(new Uint8Array(await new Response(stream).arrayBuffer()));
+        } catch (error) {
+          attempts.push("native: " + error.message);
+          log("Native zstd failed: " + error.message);
+        }
+      }
+      try {
+        const fzstd = await import("https://cdn.jsdelivr.net/npm/fzstd/+esm");
+        const decompress = fzstd.decompress || (fzstd.default && fzstd.default.decompress);
+        if (typeof decompress !== "function") throw new Error("fzstd did not provide a decompress function");
+        return accept(decompress(toUint8Array(bytes), expectedSize));
+      } catch (error) {
+        attempts.push("fzstd: " + error.message);
+        log("fzstd failed: " + error.message);
+      }
+      try {
+        const zstddec = await import("https://esm.sh/zstddec");
+        const Decoder = zstddec.ZSTDDecoder || (zstddec.default && zstddec.default.ZSTDDecoder);
+        if (!Decoder) throw new Error("zstddec did not export ZSTDDecoder");
+        const decoder = new Decoder();
+        if (typeof decoder.init === "function") await decoder.init();
+        if (typeof decoder.decode === "function") return accept(decoder.decode(toUint8Array(bytes), expectedSize));
+        if (typeof decoder.decompress === "function") return accept(decoder.decompress(toUint8Array(bytes), expectedSize));
+        throw new Error("zstddec decoder has no decode/decompress method");
+      } catch (error) {
+        attempts.push("zstddec: " + error.message);
+      }
+      throw new Error("zstd decompression failed (" + attempts.join("; ") + ")");
+    }
+
+    function toUint8Array(bytes) {
+      if (bytes instanceof Uint8Array) return bytes;
+      if (bytes instanceof ArrayBuffer) return new Uint8Array(bytes);
+      if (ArrayBuffer.isView(bytes)) return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      throw new TypeError("expected bytes");
+    }
+
+    const zstdWorkerSource = `
+      let fzstdPromise = null;
+      let zstdDecoderPromise = null;
+
+      self.onmessage = async event => {
+        try {
+          const bytes = new Uint8Array(event.data.bytes);
+          const expectedSize = event.data.expectedSize;
+          const output = await decompressZstd(bytes, expectedSize);
+          postMessage({ type: "done", bytes: output }, [output.buffer]);
+        } catch (error) {
+          postMessage({ type: "error", message: error && error.message ? error.message : String(error) });
+        }
+      };
+
+      async function decompressZstd(bytes, expectedSize) {
+        const attempts = [];
+        const accept = output => {
+          const normalized = toUint8Array(output);
+          if (expectedSize != null && normalized.length !== expectedSize) {
+            throw new Error("decompressed size mismatch (expected " + expectedSize + ", got " + normalized.length + ")");
+          }
+          return normalized;
+        };
+        if (typeof DecompressionStream === "function") {
+          try {
+            const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("zstd"));
+            return accept(new Uint8Array(await new Response(stream).arrayBuffer()));
+          } catch (error) {
+            attempts.push("native: " + error.message);
+          }
+        }
+        try {
+          if (!fzstdPromise) fzstdPromise = import("https://cdn.jsdelivr.net/npm/fzstd/+esm");
+          const fzstd = await fzstdPromise;
+          const decompress = fzstd.decompress || (fzstd.default && fzstd.default.decompress);
+          if (typeof decompress !== "function") throw new Error("fzstd did not provide a decompress function");
+          return accept(decompress(bytes));
+        } catch (error) {
+          attempts.push("fzstd: " + error.message);
+        }
+        try {
+          if (!zstdDecoderPromise) {
+            zstdDecoderPromise = (async () => {
+              const zstddec = await import("https://esm.sh/zstddec");
+              const Decoder = zstddec.ZSTDDecoder || (zstddec.default && zstddec.default.ZSTDDecoder);
+              if (!Decoder) throw new Error("zstddec did not export ZSTDDecoder");
+              const decoder = new Decoder();
+              if (typeof decoder.init === "function") await decoder.init();
+              return decoder;
+            })();
+          }
+          const decoder = await zstdDecoderPromise;
+          if (typeof decoder.decode === "function") return accept(decoder.decode(bytes, expectedSize));
+          if (typeof decoder.decompress === "function") return accept(decoder.decompress(bytes, expectedSize));
+          throw new Error("zstddec decoder has no decode/decompress method");
+        } catch (error) {
+          attempts.push("zstddec: " + error.message);
+        }
+        throw new Error("zstd decompression failed (" + attempts.join("; ") + ")");
+      }
+
+      function toUint8Array(bytes) {
+        if (bytes instanceof Uint8Array) return bytes;
+        if (bytes instanceof ArrayBuffer) return new Uint8Array(bytes);
+        if (ArrayBuffer.isView(bytes)) return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+        throw new TypeError("expected bytes");
+      }
+    `;
+
+    function zstdPoolSize() {
+      return Math.max(1, state.chunkConcurrency || DEFAULT_CHUNK_CONCURRENCY);
+    }
+
+    function ensureZstdWorkerUrl() {
+      if (!state.zstdWorkerUrl) {
+        state.zstdWorkerUrl = URL.createObjectURL(new Blob([zstdWorkerSource], { type: "text/javascript" }));
+      }
+      return state.zstdWorkerUrl;
+    }
+
+    function createZstdWorkerSlot() {
+      const slot = {
+        worker: new Worker(ensureZstdWorkerUrl(), { type: "module" }),
+        busy: false,
+        task: null,
+      };
+      slot.worker.onmessage = event => finishZstdWorkerTask(slot, null, event.data);
+      slot.worker.onerror = error => finishZstdWorkerTask(slot, new Error(error.message || "zstd worker failed"));
+      state.zstdWorkers.push(slot);
+      return slot;
+    }
+
+    function terminateZstdWorkerSlot(slot) {
+      const index = state.zstdWorkers.indexOf(slot);
+      if (index >= 0) state.zstdWorkers.splice(index, 1);
+      try { slot.worker.terminate(); } catch (_) {}
+      if (slot.task && slot.task.signal) slot.task.signal.removeEventListener("abort", slot.task.onAbort);
+      slot.busy = false;
+      slot.task = null;
+    }
+
+    function finishZstdWorkerTask(slot, error, message) {
+      const task = slot.task;
+      if (!task) return;
+      slot.task = null;
+      slot.busy = false;
+      if (task.signal) task.signal.removeEventListener("abort", task.onAbort);
+      if (error) task.reject(error);
+      else if (message && message.type === "done") task.resolve(toUint8Array(message.bytes));
+      else task.reject(new Error((message && message.message) || "zstd worker failed"));
+      scheduleZstdWork();
+    }
+
+    function scheduleZstdWork() {
+      while (state.zstdQueue.length) {
+        let slot = state.zstdWorkers.find(item => !item.busy);
+        if (!slot && state.zstdWorkers.length < zstdPoolSize()) slot = createZstdWorkerSlot();
+        if (!slot) return;
+        const task = state.zstdQueue.shift();
+        if (task.signal && task.signal.aborted) {
+          task.reject(new DOMException("request aborted", "AbortError"));
+          continue;
+        }
+        slot.busy = true;
+        slot.task = task;
+        task.onAbort = () => {
+          task.reject(new DOMException("request aborted", "AbortError"));
+          terminateZstdWorkerSlot(slot);
+          scheduleZstdWork();
+        };
+        if (task.signal) task.signal.addEventListener("abort", task.onAbort, { once: true });
+        slot.worker.postMessage({ bytes: task.bytes.buffer, expectedSize: task.expectedSize }, [task.bytes.buffer]);
+      }
+    }
+
+    function decompressZstdInWorker(bytes, expectedSize, signal) {
+      return new Promise((resolve, reject) => {
+        const source = toUint8Array(bytes);
+        const data = source.slice();
+        state.zstdQueue.push({ bytes: data, expectedSize, signal, resolve, reject, onAbort: null });
+        scheduleZstdWork();
+      });
+    }
+
+    function hexPreview(bytes) {
+      const limit = Math.min(bytes.length, 512);
+      const lines = [];
+      for (let i = 0; i < limit; i += 16) {
+        const slice = bytes.subarray(i, Math.min(i + 16, limit));
+        const hex = Array.from(slice, b => b.toString(16).padStart(2, "0")).join(" ");
+        const ascii = Array.from(slice, b => b >= 32 && b <= 126 ? String.fromCharCode(b) : ".").join("");
+        lines.push(i.toString(16).padStart(8, "0") + "  " + hex.padEnd(47, " ") + "  " + ascii);
+      }
+      if (bytes.length > limit) lines.push("... " + (bytes.length - limit).toLocaleString() + " more bytes");
+      return lines.join("\n");
+    }
+
+    function downloadBytes(bytes, name) {
+      const url = URL.createObjectURL(new Blob([bytes]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadLast() {
+      if (state.lastBytes) downloadBytes(state.lastBytes, state.lastName);
+    }
+
+    function openDownloadModal(files) {
+      if (state.downloadTask && state.downloadTask.running) state.downloadTask.controller.abort();
+      const task = {
+        controller: new AbortController(),
+        running: true,
+        total: files.length,
+      };
+      state.downloadTask = task;
+      els.downloadRows.textContent = "";
+      els.downloadModal.classList.add("visible");
+      els.downloadCancelBtn.textContent = "Cancel";
+      els.downloadCancelBtn.disabled = false;
+      els.downloadCancelBtn.classList.add("danger");
+      els.downloadOverallProgress.style.width = "0%";
+      els.downloadOverallText.textContent = "Preparing " + files.length.toLocaleString() + " selected file" + (files.length === 1 ? "" : "s") + ".";
+      return task;
+    }
+
+    function closeDownloadModal() {
+      els.downloadModal.classList.remove("visible");
+      if (state.downloadTask) state.downloadTask.running = false;
+    }
+
+    function finishDownloadModal(text) {
+      if (state.downloadTask) state.downloadTask.running = false;
+      els.downloadOverallProgress.style.width = "100%";
+      els.downloadOverallText.textContent = text;
+      els.downloadCancelBtn.textContent = "Done";
+      els.downloadCancelBtn.disabled = false;
+      els.downloadCancelBtn.classList.remove("danger");
+    }
+
+    function setDownloadOverall(done, total, text) {
+      const percent = total > 0 ? Math.min(100, done / total * 100) : 0;
+      els.downloadOverallProgress.style.width = percent + "%";
+      els.downloadOverallText.textContent = text + " " + done.toLocaleString() + " / " + total.toLocaleString() + " complete.";
+    }
+
+    function createDownloadRow(file) {
+      const row = document.createElement("div");
+      row.className = "download-row";
+      row.innerHTML =
+        "<div class=\"path\"></div>" +
+        "<div class=\"state\">Pending</div>" +
+        "<div class=\"progress\" aria-hidden=\"true\"><div></div></div>";
+      row.querySelector(".path").textContent = file.path;
+      els.downloadRows.appendChild(row);
+      return row;
+    }
+
+    function setDownloadRow(row, text, percent, stateClass) {
+      if (!row) return;
+      row.classList.remove("done", "failed");
+      if (stateClass) row.classList.add(stateClass);
+      row.querySelector(".state").textContent = text;
+      if (percent !== null && percent !== undefined) {
+        row.querySelector(".progress > div").style.width = Math.max(0, Math.min(100, percent)) + "%";
+      }
+    }
+
+    function setDownloadChunkProgress(row, info, writtenChunks) {
+      const totalChunks = Math.max(1, Number(info.totalChunks || 0));
+      const fetchedChunks = Number(info.fetchedChunks || 0);
+      const decompressedChunks = Number(info.decompressedChunks || 0);
+      const fetchedBytes = Number(info.fetchedBytes || 0);
+      const totalCompressed = Number(info.totalCompressed || 0);
+      const active = Number(info.activeRequests || 0);
+      const concurrency = Number(info.concurrency || state.chunkConcurrency || DEFAULT_CHUNK_CONCURRENCY);
+      const percent = totalCompressed > 0
+        ? Math.min(100, fetchedBytes / totalCompressed * 100)
+        : Math.min(100, decompressedChunks / totalChunks * 100);
+      const writeText = writtenChunks == null
+        ? ""
+        : ", written " + Number(writtenChunks || 0).toLocaleString() + " / " + totalChunks.toLocaleString();
+      const byteText = totalCompressed > 0
+        ? " (" + formatBytes(fetchedBytes) + " / " + formatBytes(totalCompressed) + ")"
+        : "";
+      setDownloadRow(
+        row,
+        "Chunks: fetched " + fetchedChunks.toLocaleString() + " / " + totalChunks.toLocaleString() +
+          ", decompressed " + decompressedChunks.toLocaleString() + " / " + totalChunks.toLocaleString() +
+          writeText + ", active " + active.toLocaleString() + " / " + concurrency.toLocaleString() + byteText,
+        percent
+      );
+    }
+
+    function handleDownloadError(error, total, completed) {
+      if (isAbortError(error)) {
+        finishDownloadModal("Cancelled. " + completed.toLocaleString() + " of " + total.toLocaleString() + " files finished.");
+        return;
+      }
+      finishDownloadModal("Done with errors. " + error.message);
+      log("Download failed: " + error.message);
+    }
+
+    function isAbortError(error) {
+      return error && (error.name === "AbortError" || /abort|cancel/i.test(error.message || ""));
+    }
+
+    function sleep(ms, signal) {
+      return new Promise((resolve, reject) => {
+        if (signal && signal.aborted) {
+          reject(new DOMException("request aborted", "AbortError"));
+          return;
+        }
+        const timer = setTimeout(resolve, ms);
+        if (signal) {
+          signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("request aborted", "AbortError"));
+          }, { once: true });
+        }
+      });
+    }
+
+    async function readRangeWithRetries(entry, onProgress, signal, onRetry) {
+      const maxRetries = 5;
+      for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        try {
+          return await state.source.readWithProgress(entry.offset, entry.compressedSize, onProgress, signal);
+        } catch (error) {
+          if (isAbortError(error) || attempt >= maxRetries) throw error;
+          const retryNumber = attempt + 1;
+          if (onRetry) onRetry(retryNumber, maxRetries, error);
+          log("Range pull failed; retry " + retryNumber + " / " + maxRetries + " after 1s: " + error.message);
+          await sleep(1000, signal);
+        }
+      }
+      throw new Error("range pull failed after retries");
+    }
+
+    function resolveChunkJobs(file, chunks, chunkEntries) {
+      return chunks.map((chunk, index) => {
+        const key = parseChunkId("0x" + chunk.chunkId).toString();
+        const entry = chunkEntries.get(key);
+        if (!entry) throw new Error("could not resolve chunk " + chunk.chunkId + " for " + file.path);
+        if (entry.uncompressedSize !== chunk.uncompressedSize) {
+          throw new Error("chunk size mismatch for " + chunk.chunkId + " (manifest " + chunk.uncompressedSize + ", bundle " + entry.uncompressedSize + ")");
+        }
+        return { index, chunk, entry };
+      });
+    }
+
+    function makeChunkProgress(totalCompressed, opts, totalChunks, concurrency) {
+      const partials = new Map();
+      const state = {
+        fetchedBytes: 0,
+        fetchedChunks: 0,
+        decompressedChunks: 0,
+        activeFetches: 0,
+      };
+      const emit = fallbackTotal => {
+        let activeBytes = 0;
+        for (const value of partials.values()) activeBytes += value;
+        const loaded = state.fetchedBytes + activeBytes;
+        const total = totalCompressed || fallbackTotal || 0;
+        if (opts.onChunkProgress) {
+          opts.onChunkProgress({
+            fetchedBytes: loaded,
+            totalCompressed: total,
+            fetchedChunks: state.fetchedChunks,
+            decompressedChunks: state.decompressedChunks,
+            totalChunks,
+            activeRequests: state.activeFetches,
+            concurrency,
+          });
+        } else if (opts.onFetchProgress) {
+          opts.onFetchProgress(loaded, total);
+        }
+      };
+      return {
+        onFetchStart() {
+          state.activeFetches += 1;
+          emit(0);
+        },
+        onPull(index, received, total) {
+          partials.set(index, received);
+          emit(total);
+        },
+        onFetched(index, length) {
+          partials.delete(index);
+          state.activeFetches = Math.max(0, state.activeFetches - 1);
+          state.fetchedBytes += length;
+          state.fetchedChunks += 1;
+          emit(length);
+        },
+        onFetchFailed(index) {
+          partials.delete(index);
+          state.activeFetches = Math.max(0, state.activeFetches - 1);
+          emit(0);
+        },
+        onDecompressed() {
+          state.decompressedChunks += 1;
+          if (opts.onFileProgress) opts.onFileProgress(state.decompressedChunks, totalChunks);
+          emit(0);
+        },
+      };
+    }
+
+    function startChunkReadQueue(jobs, totalCompressed, opts) {
+      const concurrency = Math.max(1, Math.min(state.chunkConcurrency || DEFAULT_CHUNK_CONCURRENCY, jobs.length));
+      const progress = makeChunkProgress(totalCompressed, opts, jobs.length, concurrency);
+      log("Starting " + concurrency.toLocaleString() + " parallel RADS range pull" + (concurrency === 1 ? "" : "s") + " for " + jobs.length.toLocaleString() + " chunks");
+      const deferred = jobs.map(() => {
+        let resolve = null;
+        let reject = null;
+        const promise = new Promise((res, rej) => {
+          resolve = res;
+          reject = rej;
+        });
+        return { promise, resolve, reject };
+      });
+      const promises = deferred.map(item => item.promise);
+      for (const promise of promises) promise.catch(() => {});
+      let nextIndex = 0;
+      let activeFetches = 0;
+      let rejectAll = null;
+      let failed = false;
+      const failedPromise = new Promise((_, reject) => { rejectAll = reject; });
+      failedPromise.catch(() => {});
+
+      function failJob(index, error) {
+        failed = true;
+        deferred[index].reject(error);
+        if (rejectAll) rejectAll(error);
+      }
+
+      function launchNext() {
+        if (failed) return;
+        while (activeFetches < concurrency && nextIndex < jobs.length) {
+          if (opts.signal && opts.signal.aborted) {
+            failed = true;
+            if (rejectAll) rejectAll(new DOMException("request aborted", "AbortError"));
+            return;
+          }
+          const index = nextIndex;
+          nextIndex += 1;
+          const job = jobs[index];
+          activeFetches += 1;
+          let fetchDone = false;
+          progress.onFetchStart();
+          readRangeWithRetries(job.entry, (_ratio, received, total) => {
+            progress.onPull(job.index, received, total || job.entry.compressedSize);
+          }, opts.signal, (retry, max, error) => {
+            if (opts.onRetry) opts.onRetry(retry, max, error);
+          })
+            .then(compressed => {
+              fetchDone = true;
+              activeFetches -= 1;
+              progress.onFetched(job.index, compressed.length);
+              launchNext();
+              return decompressZstdInWorker(compressed, job.entry.uncompressedSize, opts.signal);
+            })
+            .then(bytes => {
+              progress.onDecompressed();
+              deferred[index].resolve(bytes);
+            })
+            .catch(error => {
+              if (!fetchDone) {
+                activeFetches = Math.max(0, activeFetches - 1);
+                progress.onFetchFailed(job.index);
+              }
+              failJob(index, error);
+            });
+        }
+      }
+
+      launchNext();
+      return { promises, failed: failedPromise };
+    }
+
+    async function readChunksParallel(jobs, totalCompressed, opts) {
+      const reads = startChunkReadQueue(jobs, totalCompressed, opts);
+      return await Promise.race([
+        Promise.all(reads.promises),
+        reads.failed,
+      ]);
+    }
+
+    function startParallelChunkReads(jobs, totalCompressed, opts) {
+      return startChunkReadQueue(jobs, totalCompressed, opts);
+    }
+
+    async function reconstructFile(file, resolvedEntry, options) {
+      const opts = options || {};
+      if (!state.index) throw new Error("bundle index is not loaded");
+      const chunks = await getFileChunkRefs(file, resolvedEntry, opts);
+      if (!chunks.length) throw new Error("no chunks found for " + file.path);
+      const chunkEntries = resolveEntriesForChunkRefs(chunks);
+      const totalSize = chunks.reduce((sum, chunk) => sum + chunk.uncompressedSize, 0);
+      if (file.size && totalSize !== file.size) {
+        throw new Error("manifest chunk sizes do not match " + file.path + " (expected " + file.size + ", got " + totalSize + ")");
+      }
+      const output = new Uint8Array(file.size || totalSize);
+      let outputOffset = 0;
+      const totalCompressed = chunks.reduce((sum, chunk) => {
+        const entry = chunkEntries.get(parseChunkId("0x" + chunk.chunkId).toString());
+        return sum + (entry ? entry.compressedSize : 0);
+      }, 0);
+      const jobs = resolveChunkJobs(file, chunks, chunkEntries);
+      const parts = await readChunksParallel(jobs, totalCompressed, opts);
+      for (const bytes of parts) {
+        output.set(bytes, outputOffset);
+        outputOffset += bytes.length;
+      }
+      if (file.size && outputOffset !== file.size) throw new Error("size mismatch for " + file.path + " (expected " + file.size + ", got " + outputOffset + ")");
+      return outputOffset === output.length ? output : output.slice(0, outputOffset);
+    }
+
+    async function getFileChunkRefs(file, resolvedEntry, opts) {
+      if (file.chunks && file.chunks.length) return file.chunks;
+      const listEntry = resolvedEntry || state.index.get("0x" + file.fileId);
+      if (!listEntry) throw new Error("could not resolve chunk list for " + file.path);
+      if (opts.onStage) opts.onStage("Pulling chunk list");
+      const compressed = await readRangeWithRetries(listEntry, (_ratio, received, total) => {
+        if (opts.onFetchProgress) opts.onFetchProgress(received, total || listEntry.compressedSize);
+      }, opts.signal, (retry, max, error) => {
+        if (opts.onRetry) opts.onRetry(retry, max, error);
+      });
+      if (opts.onStage) opts.onStage("Decompressing chunk list");
+      const bytes = await decompressZstdInWorker(compressed, listEntry.uncompressedSize, opts.signal);
+      return parsePackedChunkRefs(bytes);
+    }
+
+    function parsePackedChunkRefs(bytes) {
+      const data = toUint8Array(bytes);
+      if (data.length % 16 !== 0) throw new Error("packed chunk list size is not a multiple of 16 bytes");
+      const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+      const chunks = [];
+      for (let offset = 0; offset < data.length; offset += 16) {
+        const chunkId = view.getBigUint64(offset, true);
+        const packed1 = view.getUint32(offset + 8, true);
+        const packed2 = view.getUint32(offset + 12, true);
+        chunks.push({
+          chunkId: chunkIdHex(chunkId),
+          uncompressedSize: packed1 & 0x0fffffff,
+          hashType: packed2 & 0x0f,
+        });
+      }
+      return chunks.filter(chunk => chunk.chunkId !== "0000000000000000" && chunk.uncompressedSize > 0);
+    }
+
+    async function downloadSelected() {
+      const files = await selectedFiles();
+      if (!files.length) return;
+      const task = openDownloadModal(files);
+      if (files.length === 1) {
+        try {
+          const row = createDownloadRow(files[0]);
+          setDownloadOverall(0, 1, "Downloading 1 file from Archive.org...");
+          setDownloadRow(row, "Resolving chunk", 0);
+          const bytes = await reconstructFile(files[0], null, {
+            signal: task.controller.signal,
+            onStage: text => setDownloadRow(row, text, null),
+            onRetry: (retry, max, error) => setDownloadRow(row, "Retrying pull " + retry + " / " + max + " after 1s: " + error.message, null),
+            onChunkProgress: info => setDownloadChunkProgress(row, info),
+            onFetchProgress: (received, total) => {
+              const percent = total > 0 ? received / total * 100 : 0;
+              setDownloadRow(row, "Pulling bundle range: " + formatPercent(received, total) + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", percent);
+            },
+          });
+          setDownloadRow(row, "Starting browser download", 95);
+          downloadBytes(bytes, safeDownloadName(files[0].path));
+          setDownloadRow(row, "Done", 100, "done");
+          finishDownloadModal("Done. 1 file downloaded.");
+        } catch (error) {
+          const row = els.downloadRows.querySelector(".download-row");
+          if (row) setDownloadRow(row, isAbortError(error) ? "Cancelled" : error.message, null, "failed");
+          handleDownloadError(error, files.length, 0);
+        }
+        return;
+      }
+      if (typeof window.showDirectoryPicker !== "function") {
+        closeDownloadModal();
+        els.fsApiModal.classList.add("visible");
+        return;
+      }
+      setDownloadOverall(0, files.length, "Choose a destination folder.");
+      let root = null;
+      try {
+        root = await window.showDirectoryPicker({ mode: "readwrite" });
+      } catch (error) {
+        handleDownloadError(error, files.length, 0);
+        return;
+      }
+      setDownloadOverall(0, files.length, "Preparing selected files...");
+      const rows = new Map();
+      for (const file of files) {
+        rows.set(file.path, createDownloadRow(file));
+      }
+      let completed = 0;
+      let failed = 0;
+      let nextFile = 0;
+      const fileConcurrency = Math.max(1, Math.min(state.fileConcurrency || DEFAULT_FILE_CONCURRENCY, files.length));
+      setDownloadOverall(0, files.length, "Downloading from Archive.org with " + fileConcurrency.toLocaleString() + " parallel file" + (fileConcurrency === 1 ? "" : "s") + "...");
+
+      async function downloadWorker() {
+        for (;;) {
+          if (task.controller.signal.aborted) throw new DOMException("request aborted", "AbortError");
+          const index = nextFile;
+          nextFile += 1;
+          if (index >= files.length) return;
+          const file = files[index];
+          const row = rows.get(file.path);
+          try {
+            row._lastChunkInfo = null;
+            row._writtenChunks = 0;
+            setDownloadRow(row, "Resolving chunks", 0);
+            await writeReconstructedFile(root, file, {
+              signal: task.controller.signal,
+              onStage: text => setDownloadRow(row, text, null),
+              onRetry: (retry, max, error) => setDownloadRow(row, "Retrying pull " + retry + " / " + max + " after 1s: " + error.message, null),
+              onChunkProgress: info => {
+                row._lastChunkInfo = info;
+                setDownloadChunkProgress(row, info, row._writtenChunks || 0);
+              },
+              onWriteProgress: (written, total) => {
+                row._writtenChunks = written;
+                if (row._lastChunkInfo) setDownloadChunkProgress(row, row._lastChunkInfo, written);
+                else setDownloadRow(row, "Writing chunk " + written.toLocaleString() + " / " + total.toLocaleString(), total > 0 ? written / total * 100 : null);
+              },
+              onFetchProgress: (received, total) => {
+                const percent = total > 0 ? received / total * 100 : 0;
+                setDownloadRow(row, "Pulling bundle range: " + formatPercent(received, total) + "% (" + formatBytes(received) + " / " + formatBytes(total) + ")", percent);
+              },
+            });
+            completed += 1;
+            setDownloadRow(row, "Done", 100, "done");
+            log("Saved " + file.path);
+          } catch (error) {
+            if (isAbortError(error)) {
+              setDownloadRow(row, "Cancelled", null, "failed");
+              throw error;
+            }
+            failed += 1;
+            setDownloadRow(row, error.message, null, "failed");
+            log("Download skipped: " + error.message);
+          }
+          setDownloadOverall(completed + failed, files.length, "Downloading from Archive.org...");
+        }
+      }
+
+      try {
+        await Promise.all(Array.from({ length: fileConcurrency }, downloadWorker));
+      } catch (error) {
+        if (isAbortError(error)) {
+          finishDownloadModal("Cancelled. " + completed.toLocaleString() + " of " + files.length.toLocaleString() + " files finished.");
+          return;
+        }
+        throw error;
+      }
+      finishDownloadModal("Done. " + completed.toLocaleString() + " files downloaded" + (failed ? ", " + failed.toLocaleString() + " failed." : "."));
+    }
+
+    async function writeFileToDirectory(root, path, bytes) {
+      const writable = await openWritableForPath(root, path);
+      await writable.write(bytes);
+      await writable.close();
+    }
+
+    async function openWritableForPath(root, path) {
+      const parts = path.split("/").filter(Boolean);
+      let dir = root;
+      for (let i = 0; i < parts.length - 1; i += 1) {
+        dir = await dir.getDirectoryHandle(parts[i], { create: true });
+      }
+      const handle = await dir.getFileHandle(parts[parts.length - 1] || "file.bin", { create: true });
+      return await handle.createWritable();
+    }
+
+    async function writeReconstructedFile(root, file, options) {
+      const opts = options || {};
+      const chunks = await getFileChunkRefs(file, null, opts);
+      if (!chunks.length) throw new Error("no chunks found for " + file.path);
+      const chunkEntries = resolveEntriesForChunkRefs(chunks);
+      const totalSize = chunks.reduce((sum, chunk) => sum + chunk.uncompressedSize, 0);
+      if (file.size && totalSize !== file.size) {
+        throw new Error("manifest chunk sizes do not match " + file.path + " (expected " + file.size + ", got " + totalSize + ")");
+      }
+      const totalCompressed = chunks.reduce((sum, chunk) => {
+        const entry = chunkEntries.get(parseChunkId("0x" + chunk.chunkId).toString());
+        return sum + (entry ? entry.compressedSize : 0);
+      }, 0);
+      let writtenBytes = 0;
+      let writable = null;
+      try {
+        if (opts.onStage) opts.onStage("Opening file");
+        writable = await openWritableForPath(root, file.path);
+        const jobs = resolveChunkJobs(file, chunks, chunkEntries);
+        const reads = startParallelChunkReads(jobs, totalCompressed, opts);
+        for (let i = 0; i < chunks.length; i += 1) {
+          const bytes = await Promise.race([reads.promises[i], reads.failed]);
+          if (opts.onStage && !opts.onChunkProgress) opts.onStage("Writing chunk " + (i + 1).toLocaleString() + " / " + chunks.length.toLocaleString());
+          await writable.write(bytes);
+          writtenBytes += bytes.length;
+          if (opts.onWriteProgress) opts.onWriteProgress(i + 1, chunks.length);
+        }
+        if (file.size && writtenBytes !== file.size) throw new Error("size mismatch for " + file.path + " (expected " + file.size + ", got " + writtenBytes + ")");
+        await writable.close();
+      } catch (error) {
+        if (writable) {
+          try { await writable.abort(); } catch (_) {}
+        }
+        throw error;
+      }
+    }
+
+    async function runTask(label, fn, onError) {
+      try {
+        setStatus("", label);
+        await fn();
+        setStatus("ok", "Ready");
+      } catch (error) {
+        console.error(error);
+        log("ERROR " + error.message);
+        setStatus("err", error.message);
+        if (onError) onError(error);
+      }
+    }
+
+    async function startup() {
+      els.corsBanner.classList.remove("visible");
+      if (!state.source || !state.footer) {
+        els.bundleLoadText.textContent = "Probing Archive.org bundle...";
+        state.source = new ArchiveRangeReader(RADS_BUNDLE_URL);
+        state.footer = await state.source.probe();
+        els.rangeBtn.disabled = false;
+      }
+      log("Probe OK. Remote size " + state.footer.remoteSize + ", entries " + state.footer.entryCount);
+      await loadBundleIndex();
+      await loadManifest();
+      state.currentPath = "";
+      setFileSearchBusy(false);
+      renderFilesystem();
+      els.startupModal.classList.remove("visible");
+    }
+
+    async function runStartupChecks() {
+      els.corsBanner.classList.remove("visible");
+      els.fsApiModal.classList.remove("visible");
+      els.opfsBanner.classList.remove("visible");
+      els.startupStartBtn.disabled = true;
+      els.bundleLoadText.textContent = "Checking browser support...";
+      els.manifestProgressText.textContent = "Checking persistent SQLite storage...";
+      if (typeof window.showDirectoryPicker !== "function") {
+        els.startupModal.classList.remove("visible");
+        els.fsApiModal.classList.add("visible");
+        throw new Error("File System Access API is unavailable");
+      }
+      await initSqliteStore();
+      els.manifestProgressText.textContent = "Checking Archive.org access...";
+      const source = new ArchiveRangeReader(RADS_BUNDLE_URL);
+      await source.read(0n, 1);
+      state.source = source;
+      state.footer = await source.probe();
+      els.rangeBtn.disabled = false;
+      els.bundleLoadText.textContent = "Browser checks passed.";
+      els.manifestProgressText.textContent = "Checking local startup cache...";
+      if (await hasStartupCache()) {
+        els.manifestProgressText.textContent = "Local cache found. Starting automatically...";
+        log("Startup checks passed; local cache found, auto-starting");
+        startArchiveLoad();
+        return;
+      }
+      els.manifestProgressText.textContent = "No complete local cache found. Press Start to load the bundle index and manifest.";
+      els.startupStartBtn.disabled = false;
+      log("Startup checks passed");
+    }
+
+    async function hasStartupCache() {
+      if (!state.footer) return false;
+      const tocSize = Number(state.footer.tocBytes);
+      const tocCache = await cacheGet(bundleIndexCacheKey(state.footer)).catch(() => null);
+      if (!tocCache || !tocCache.bytes || tocCache.bytes.length !== tocSize) return false;
+      const manifestCache = await cacheGet(MANIFEST_CACHE_KEY).catch(() => null);
+      const manifestBytes = manifestCache && manifestCache.bytes ? normalizeCachedBytes(manifestCache.bytes) : null;
+      if (!manifestBytes || !looksLikeZstd(manifestBytes)) return false;
+      const parsedMeta = await cacheGet(PARSED_MANIFEST_META_KEY).catch(() => null);
+      if (!parsedMeta || String(parsedMeta.sourceSize) !== String(manifestCache.size || "")) return false;
+      const expectedCount = Number(parsedMeta.fileCount || 0);
+      if (!expectedCount) return false;
+      const actualCount = await countManifestFiles().catch(() => 0);
+      if (actualCount !== expectedCount) return false;
+      return (await countFolderRows().catch(() => 0)) > 0;
+    }
+
+    async function loadBundleIndex() {
+      els.bundleLoadText.textContent = "Checking bundle index cache...";
+      els.indexProgress.style.width = "0%";
+      if (state.footer.tocBytes > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("TOC is too large for this browser session");
+      const tocSize = Number(state.footer.tocBytes);
+      const cacheKey = bundleIndexCacheKey(state.footer);
+      let toc = null;
+      try {
+        const cached = await cacheGet(cacheKey);
+        if (cached && cached.bytes && cached.bytes.length === tocSize) {
+          toc = cached.bytes;
+          els.indexProgress.style.width = "100%";
+          els.bundleLoadText.textContent = "Loaded bundle index from local cache (" + formatBytes(tocSize) + ").";
+          log("Using cached bundle index");
+        }
+      } catch (error) {
+        log("Bundle index cache unavailable: " + error.message);
+        els.bundleLoadText.textContent = "Bundle index cache unavailable; downloading from Archive.org...";
+      }
+      if (!toc) {
+        els.bundleLoadText.textContent = "Downloading bundle index from Archive.org: 0% (0 B / " + formatBytes(tocSize) + ")";
+        const startedAt = performance.now();
+        toc = await state.source.readWithProgress(state.footer.tocOffset, tocSize, (_ratio, received, total) => {
+          const expected = total || tocSize;
+          const percent = expected > 0 ? Math.min(100, received / expected * 100) : 0;
+          els.indexProgress.style.width = percent + "%";
+          els.bundleLoadText.textContent = "Downloading bundle index from Archive.org: " + formatPercent(received, expected) + "% (" +
+            formatBytes(received) + " / " + formatBytes(expected) + ", ETA " + formatEta(received, expected, startedAt) + ")";
+        });
+        try {
+          await cachePut(cacheKey, { bytes: toc, size: tocSize, savedAt: Date.now() });
+          log("Cached bundle index locally");
+        } catch (error) {
+          log("Bundle index cache write failed: " + error.message);
+        }
+      }
+      els.bundleLoadText.textContent = "Parsing bundle index: 0%";
+      state.index = RADSBundleIndex.parseToc(state.footer, toc, ratio => {
+        const percent = Math.round(ratio * 100);
+        els.indexProgress.style.width = percent + "%";
+        els.bundleLoadText.textContent = "Parsing bundle index: " + percent + "%";
+      });
+      state.page = 0;
+      renderChunkTable();
+      els.chunkSearch.disabled = false;
+      els.searchBtn.disabled = false;
+      els.bundleLoadText.textContent = "Bundle index loaded.";
+      log("Index loaded with " + state.index.entryCount.toLocaleString() + " entries");
+    }
+
+    async function loadManifest() {
+      els.manifestProgress.style.width = "0%";
+      els.manifestProgressText.textContent = "Checking local cache...";
+      els.manifestWriteText.textContent = "";
+      const compressed = await loadManifestCompressed();
+      const parsedMeta = await cacheGet(PARSED_MANIFEST_META_KEY).catch(() => null);
+      if (parsedMeta && String(parsedMeta.sourceSize) === String(compressed.size)) {
+        const expectedCount = Number(parsedMeta.fileCount || 0);
+        const actualCount = await countManifestFiles().catch(() => 0);
+        if (expectedCount > 0 && actualCount === expectedCount) {
+          els.manifestProgress.style.width = "100%";
+          els.manifestProgressText.textContent = "Loaded parsed manifest from SQLite.";
+          state.manifestFiles = [];
+          state.fsRoot = await buildFilesystemFromDb(expectedCount);
+          log("Using SQLite manifest cache with " + expectedCount.toLocaleString() + " files");
+          return;
+        }
+        log("Parsed manifest metadata did not match SQLite rows; rebuilding manifest index");
+      }
+      const labelPrefix = compressed.fromCache ? "Using cached manifest" : "";
+      els.manifestProgressText.textContent = compressed.fromCache
+        ? "Using cached manifest: Decompressing manifest: 0%"
+        : "Decompressing manifest: 0%";
+      await clearManifestFileCache();
+      let fileCount = 0;
+      let nextCommitPercent = 10;
+      try {
+        els.manifestWriteText.textContent = "Writing manifest index: 0%";
+        await beginManifestFileImport();
+        fileCount = await loadManifestInWorker(compressed.bytes, labelPrefix, async (files, percent) => {
+          fileCount += files.length;
+          await putManifestFileBatch(files);
+          if (percent != null && percent >= nextCommitPercent && percent < 100) {
+            els.manifestWriteText.textContent = "Committing manifest index at " + nextCommitPercent + "% (" + fileCount.toLocaleString() + " files)";
+            await commitManifestFileImport();
+            while (percent >= nextCommitPercent) nextCommitPercent += 10;
+          }
+          els.manifestWriteText.textContent = "Writing manifest index: " + (percent == null ? "..." : formatProgressPercent(percent) + "%") +
+            " (" + fileCount.toLocaleString() + " files)";
+        });
+        await finishManifestFileImport();
+      } catch (error) {
+        await abortManifestFileImport().catch(() => {});
+        if (!compressed.fromCache) throw error;
+        log("Cached manifest worker failed; retrying cached manifest on main thread: " + error.message);
+        els.manifestProgressText.textContent = "Using cached manifest: retrying parser...";
+        els.manifestWriteText.textContent = "";
+        const decompressed = await decompressZstd(compressed.bytes, undefined, isJrmanManifest);
+        const files = parseJrmanManifest(decompressed);
+        fileCount = files.length;
+        els.manifestWriteText.textContent = "Writing manifest index: 0%";
+        await beginManifestFileImport();
+        await putManifestFileBatch(files);
+        await finishManifestFileImport();
+        els.manifestWriteText.textContent = "Writing manifest index: 100% (" + fileCount.toLocaleString() + " files)";
+      }
+      await cachePut(PARSED_MANIFEST_META_KEY, {
+        sourceSize: compressed.size.toString(),
+        fileCount,
+        savedAt: Date.now(),
+      });
+      state.manifestFiles = [];
+      state.fsRoot = await buildFilesystemFromDb(fileCount);
+      els.manifestProgress.style.width = "100%";
+      els.manifestProgressText.textContent = compressed.fromCache ? "Manifest loaded from local cache." : "Manifest loaded.";
+      log("Manifest loaded with " + fileCount.toLocaleString() + " files");
+    }
+
+    async function loadManifestCompressed(skipCache) {
+      let cached = null;
+      if (!skipCache) {
+        try {
+          cached = await cacheGet(MANIFEST_CACHE_KEY);
+        } catch (error) {
+          log("Cache unavailable: " + error.message);
+        }
+      }
+      if (cached && cached.bytes) {
+        const cachedBytes = normalizeCachedBytes(cached.bytes);
+        if (!cachedBytes) {
+          log("Cached manifest had unsupported byte format; ignoring it");
+        } else if (!looksLikeZstd(cachedBytes)) {
+          log("Cached manifest did not look like zstd data; ignoring it");
+        } else {
+          els.manifestProgress.style.width = "100%";
+          els.manifestProgressText.textContent = "Loaded manifest from local cache.";
+          log("Using cached manifest");
+          return { bytes: cachedBytes, size: BigInt(cached.size || cachedBytes.byteLength), fromCache: true };
+        }
+      }
+      const fetched = await fetchWholeByRange(RADS_MANIFEST_URL, els.manifestProgress, els.manifestProgressText);
+      try {
+        await cachePut(MANIFEST_CACHE_KEY, { bytes: fetched.bytes, size: fetched.size.toString(), savedAt: Date.now() });
+        log("Cached manifest locally");
+      } catch (error) {
+        log("Cache write failed: " + error.message);
+      }
+      return { bytes: fetched.bytes, size: fetched.size, fromCache: false };
+    }
+
+    function looksLikeZstd(bytes) {
+      const data = toUint8Array(bytes);
+      return data.length >= 4 && data[0] === 0x28 && data[1] === 0xb5 && data[2] === 0x2f && data[3] === 0xfd;
+    }
+
+    function normalizeCachedBytes(bytes) {
+      if (bytes instanceof Uint8Array) return bytes;
+      if (bytes instanceof ArrayBuffer) return new Uint8Array(bytes);
+      if (ArrayBuffer.isView(bytes)) return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      if (bytes && bytes.type === "base64" && typeof bytes.data === "string") return base64ToUint8(bytes.data);
+      return null;
+    }
+
+    function base64ToUint8(text) {
+      const binary = atob(text);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+
+    function openSettings() {
+      syncSettingsInputs();
+      els.settingsModal.classList.add("visible");
+      els.cacheSizeText.textContent = "Calculating...";
+      refreshCacheSize();
+    }
+
+    function initSettings() {
+      state.fileConcurrency = readPositiveIntSetting("rads-file-concurrency", DEFAULT_FILE_CONCURRENCY);
+      state.chunkConcurrency = readPositiveIntSetting("rads-chunk-concurrency", DEFAULT_CHUNK_CONCURRENCY);
+      syncSettingsInputs();
+      const updateFileConcurrency = () => {
+        state.fileConcurrency = readPositiveIntInput(els.parallelFileDownloads, DEFAULT_FILE_CONCURRENCY);
+        localStorage.setItem("rads-file-concurrency", String(state.fileConcurrency));
+        syncSettingsInputs();
+      };
+      const updateChunkConcurrency = () => {
+        state.chunkConcurrency = readPositiveIntInput(els.parallelChunkDownloads, DEFAULT_CHUNK_CONCURRENCY);
+        localStorage.setItem("rads-chunk-concurrency", String(state.chunkConcurrency));
+        syncSettingsInputs();
+      };
+      els.parallelFileDownloads.addEventListener("input", updateFileConcurrency);
+      els.parallelFileDownloads.addEventListener("change", updateFileConcurrency);
+      els.parallelChunkDownloads.addEventListener("input", updateChunkConcurrency);
+      els.parallelChunkDownloads.addEventListener("change", updateChunkConcurrency);
+    }
+
+    function readPositiveIntSetting(key, fallback) {
+      const value = Number(localStorage.getItem(key));
+      return Number.isFinite(value) && value >= 1 ? Math.floor(value) : fallback;
+    }
+
+    function readPositiveIntInput(input, fallback) {
+      const value = Number(input.value);
+      return Number.isFinite(value) && value >= 1 ? Math.floor(value) : fallback;
+    }
+
+    function syncSettingsInputs() {
+      els.parallelFileDownloads.value = String(state.fileConcurrency || DEFAULT_FILE_CONCURRENCY);
+      els.parallelChunkDownloads.value = String(state.chunkConcurrency || DEFAULT_CHUNK_CONCURRENCY);
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      els.themeBtn.innerHTML = theme === "dark" ? sunIconSvg() : moonIconSvg();
+      localStorage.setItem("rads-theme", theme);
+    }
+
+    function moonIconSvg() {
+      return "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20.7 15.7A8.8 8.8 0 0 1 8.3 3.3 9.1 9.1 0 1 0 20.7 15.7z\"/></svg>";
+    }
+
+    function sunIconSvg() {
+      return "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 5.1a6.9 6.9 0 1 0 0 13.8 6.9 6.9 0 0 0 0-13.8zm0-4.1 1.4 3.2h-2.8L12 1zm0 22-1.4-3.2h2.8L12 23zM23 12l-3.2 1.4v-2.8L23 12zM1 12l3.2-1.4v2.8L1 12zm18.2-7.2-1.3 3-2-2 3.3-1zm-14.4 0 3.3 1-2 2-1.3-3zm14.4 14.4-3.3-1 2-2 1.3 3zm-14.4 0 1.3-3 2 2-3.3 1z\"/></svg>";
+    }
+
+    function initTheme() {
+      const saved = localStorage.getItem("rads-theme");
+      applyTheme(saved === "dark" ? "dark" : "light");
+    }
+
+    function startArchiveLoad() {
+      els.startupStartBtn.disabled = true;
+      els.bundleLoadText.textContent = "Starting archive load...";
+      els.manifestProgressText.textContent = "Waiting for bundle index...";
+      runTask("Loading archive", startup, error => {
+        els.startupModal.classList.remove("visible");
+        els.corsBanner.classList.add("visible");
+      });
+    }
+
+    els.settingsBtn.addEventListener("click", openSettings);
+    els.startupSettingsBtn.addEventListener("click", openSettings);
+    els.startupStartBtn.addEventListener("click", startArchiveLoad);
+    els.creditsBtn.addEventListener("click", () => els.creditsModal.classList.add("visible"));
+    els.githubBtn.addEventListener("click", () => window.open("https://github.com/BlueCartoonCat/bluecartooncat.github.io/tree/gh-pages/rads-web", "_blank", "noopener,noreferrer"));
+    els.closeSettingsBtn.addEventListener("click", () => els.settingsModal.classList.remove("visible"));
+    els.settingsModal.addEventListener("click", event => {
+      if (event.target === els.settingsModal) els.settingsModal.classList.remove("visible");
+    });
+    els.closeCreditsBtn.addEventListener("click", () => els.creditsModal.classList.remove("visible"));
+    els.creditsModal.addEventListener("click", event => {
+      if (event.target === els.creditsModal) els.creditsModal.classList.remove("visible");
+    });
+    els.clearCacheBtn.addEventListener("click", () => runTask("Clearing cache", async () => {
+      els.clearCacheBtn.disabled = true;
+      els.clearCacheBtn.textContent = "Deleting...";
+      els.cacheSizeText.textContent = "Deleting...";
+      try {
+        await clearLocalCache();
+        els.cacheSizeText.textContent = "0 B";
+        log("Local cache removed");
+        els.settingsModal.classList.remove("visible");
+      } finally {
+        els.clearCacheBtn.disabled = false;
+        els.clearCacheBtn.textContent = "Remove local cache";
+      }
+    }));
+    els.exportCacheBtn.addEventListener("click", () => runTask("Exporting cache", exportInitialCache));
+    els.importCacheBtn.addEventListener("click", () => els.importCacheFile.click());
+    els.importCacheFile.addEventListener("change", () => runTask("Importing cache", async () => {
+      const file = els.importCacheFile.files && els.importCacheFile.files[0];
+      if (!file) return;
+      await importInitialCache(file);
+      els.importCacheFile.value = "";
+    }));
+    els.chunkViewBtn.addEventListener("click", () => {
+      els.chunkModal.classList.add("visible");
+      renderChunkTable();
+    });
+    els.closeChunkBtn.addEventListener("click", () => els.chunkModal.classList.remove("visible"));
+    els.chunkModal.addEventListener("click", event => {
+      if (event.target === els.chunkModal) els.chunkModal.classList.remove("visible");
+    });
+    els.themeBtn.addEventListener("click", () => {
+      applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+    });
+    els.fileSearch.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        runTask("Searching files", runFileSearch);
+      }
+    });
+    els.fileSearchBtn.addEventListener("click", () => runTask("Searching files", runFileSearch));
+    els.fileSearchCancelBtn.addEventListener("click", () => clearFileSearch(true));
+    els.selectCurrentFolder.addEventListener("change", async event => {
+      await setNodeSelected(getNodeByPath(state.currentPath), event.target.checked);
+      renderFilesystem();
+    });
+    els.filePrevPage.addEventListener("click", () => runTask("Searching files", () => gotoSearchPage(state.searchPage - 1)));
+    els.fileNextPage.addEventListener("click", () => runTask("Searching files", () => gotoSearchPage(state.searchPage + 1)));
+    els.deselectAllBtn.addEventListener("click", () => {
+      state.selectedKeys.clear();
+      renderFilesystem();
+    });
+    els.downloadSelectedBtn.addEventListener("click", () => runTask("Downloading selected", downloadSelected));
+    els.downloadCancelBtn.addEventListener("click", () => {
+      if (state.downloadTask && state.downloadTask.running) {
+        state.downloadTask.controller.abort();
+        els.downloadOverallText.textContent = "Cancelling...";
+        els.downloadCancelBtn.disabled = true;
+        return;
+      }
+      closeDownloadModal();
+    });
+    els.rangeBtn.addEventListener("click", () => runTask("Reading range", async () => {
+      if (!state.source) throw new Error("probe the bundle first");
+      const offset = parseFlexibleBigInt(els.rangeOffset.value);
+      const length = Number(parseFlexibleBigInt(els.rangeLength.value));
+      if (!Number.isSafeInteger(length) || length <= 0 || length > 1024 * 1024) {
+        throw new Error("range length must be between 1 and 1048576 bytes");
+      }
+      const bytes = await state.source.read(offset, length);
+      els.hexOut.textContent = hexPreview(bytes);
+      log("Range read returned " + bytes.length + " bytes");
+    }));
+    els.searchBtn.addEventListener("click", () => runTask("Searching", async () => {
+      if (!state.index) throw new Error("build the index first");
+      const entry = state.index.get(els.chunkSearch.value);
+      if (!entry) throw new Error("chunk id not found");
+      state.page = Math.floor(entry.index / PAGE_SIZE);
+      renderChunkTable();
+      selectChunk(entry);
+      log("Found chunk " + chunkIdHex(entry.id) + " at index " + (entry.index + 1));
+    }));
+    els.prevPage.addEventListener("click", () => {
+      state.page = Math.max(0, state.page - 1);
+      renderChunkTable();
+    });
+    els.nextPage.addEventListener("click", () => {
+      if (!state.index) return;
+      state.page = Math.min(Math.floor((state.index.entryCount - 1) / PAGE_SIZE), state.page + 1);
+      renderChunkTable();
+    });
+    els.fetchChunkBtn.addEventListener("click", () => runTask("Fetching chunk", fetchSelectedCompressed));
+    els.decompressBtn.addEventListener("click", () => runTask("Decompressing chunk", decompressSelected));
+    els.downloadBtn.addEventListener("click", downloadLast);
+
+    window.addEventListener("load", () => {
+      initTheme();
+      initSettings();
+      runTask("Checking browser", runStartupChecks, error => {
+        if (error && /File System Access API/i.test(error.message || "")) return;
+        if (error && /SQLite persistent OPFS/i.test(error.message || "")) {
+          els.startupModal.classList.remove("visible");
+          els.opfsBannerText.textContent = error.message + ". Serve this page with COOP/COEP headers or use a browser/origin where SQLite OPFS is available.";
+          els.opfsBanner.classList.add("visible");
+          return;
+        }
+        els.startupModal.classList.remove("visible");
+        els.corsBanner.classList.add("visible");
+      });
+    });
+  </script>
+</body>
+</html>
