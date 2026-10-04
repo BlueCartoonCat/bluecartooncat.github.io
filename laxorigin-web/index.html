@@ -577,7 +577,7 @@
         <div class="status sr-only"><span id="statusDot" class="dot"></span><span id="statusText">Idle</span></div>
         <button id="themeBtn" class="topbar-button icon" type="button" title="Toggle theme" aria-label="Toggle theme"></button>
         <button id="creditsBtn" class="topbar-button" type="button">Credits</button>
-        <button id="occurrencesBtn" class="topbar-button" type="button">Index occurrences</button>
+        <button id="occurrencesBtn" class="topbar-button" type="button">File name counts</button>
         <button id="settingsBtn" class="topbar-button" type="button">Settings</button>
         <button id="githubBtn" class="topbar-button icon" type="button" title="Open source repository" aria-label="Open source repository">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0.5C5.65 0.5 0.5 5.65 0.5 12c0 5.09 3.29 9.4 7.86 10.93 0.58 0.11 0.79-0.25 0.79-0.56v-2.17c-3.2 0.7-3.87-1.36-3.87-1.36-0.52-1.34-1.28-1.69-1.28-1.69-1.05-0.72 0.08-0.7 0.08-0.7 1.16 0.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36 0.96 0.1-0.75 0.4-1.25 0.73-1.54-2.55-0.29-5.23-1.27-5.23-5.67 0-1.25 0.45-2.28 1.18-3.08-0.12-0.29-0.51-1.46 0.11-3.04 0 0 0.96-0.31 3.16 1.18 0.92-0.26 1.9-0.38 2.88-0.39 0.98 0 1.96 0.13 2.88 0.39 2.19-1.49 3.15-1.18 3.15-1.18 0.63 1.58 0.23 2.75 0.11 3.04 0.74 0.8 1.18 1.83 1.18 3.08 0 4.41-2.69 5.38-5.25 5.66 0.41 0.36 0.78 1.07 0.78 2.15v3.18c0 0.31 0.21 0.68 0.8 0.56A11.52 11.52 0 0 0 23.5 12C23.5 5.65 18.35 0.5 12 0.5z"/></svg>
@@ -596,21 +596,15 @@
     <div id="occurrencesModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="occurrencesTitle">
       <div class="modal-panel wide">
         <div class="panel-head">
-          <h2 id="occurrencesTitle">File names in the bundle index</h2>
+          <h2 id="occurrencesTitle">File names across folders</h2>
           <button id="closeOccurrencesBtn" type="button">Close</button>
         </div>
         <div class="panel-body">
-          <p class="hint">Search file names or paths to group matching manifest entries by their final file name and count where each name appears.</p>
-          <div class="explorer-toolbar">
-            <label>File name or path
-              <input id="occurrenceSearch" placeholder="e.g. champion, .wad, textures" disabled>
-            </label>
-            <button id="occurrenceSearchBtn" type="button" disabled>Find files</button>
-          </div>
-          <div id="occurrenceSummary" class="summary">Load the manifest and bundle index to search.</div>
+          <p class="hint">All manifest files grouped by final file name, sorted from fewest folder occurrences to most.</p>
+          <div id="occurrenceSummary" class="summary">Load the manifest to view filename occurrences.</div>
           <div class="occurrence-results">
             <table>
-              <thead><tr><th>File name</th><th>Occurrences</th><th>Folder paths</th></tr></thead>
+              <thead><tr><th>File name</th><th>Occurrences</th><th>Files</th></tr></thead>
               <tbody id="occurrenceRows"></tbody>
             </table>
           </div>
@@ -912,7 +906,7 @@
     };
 
     for (const id of [
-      "statusDot", "statusText", "themeBtn", "creditsBtn", "occurrencesBtn", "occurrencesModal", "closeOccurrencesBtn", "occurrenceSearch", "occurrenceSearchBtn", "occurrenceSummary", "occurrenceRows", "occurrenceDetailModal", "closeOccurrenceDetailBtn", "occurrenceDetailTitle", "occurrenceDetailSummary", "occurrenceDetailRows", "settingsBtn", "githubBtn", "startupSettingsBtn", "chunkViewBtn",
+      "statusDot", "statusText", "themeBtn", "creditsBtn", "occurrencesBtn", "occurrencesModal", "closeOccurrencesBtn", "occurrenceSummary", "occurrenceRows", "occurrenceDetailModal", "closeOccurrenceDetailBtn", "occurrenceDetailTitle", "occurrenceDetailSummary", "occurrenceDetailRows", "settingsBtn", "githubBtn", "startupSettingsBtn", "chunkViewBtn",
       "settingsModal", "closeSettingsBtn", "creditsModal", "closeCreditsBtn", "clearCacheBtn", "exportCacheBtn", "importCacheBtn", "importCacheFile", "cacheSizeText",
       "parallelFileDownloads", "parallelChunkDownloads",
       "startupStartBtn",
@@ -1510,32 +1504,23 @@
       }
     }
 
-    async function searchIndexOccurrences() {
-      const query = els.occurrenceSearch.value.trim();
-      if (!query) {
-        els.occurrenceSummary.textContent = "Enter part of a file name or path to search.";
-        els.occurrenceRows.textContent = "";
-        return;
-      }
-      if (!state.index) throw new Error("bundle index is not loaded");
-      els.occurrenceSearchBtn.disabled = true;
-      els.occurrenceSearchBtn.classList.add("loading");
-      els.occurrenceSearchBtn.textContent = "Searching";
+    async function loadFileNameOccurrences() {
+      if (!state.fsRoot) throw new Error("manifest index is not loaded");
       els.occurrenceRows.textContent = "";
-      els.occurrenceSummary.textContent = "Grouping matching manifest paths by file name...";
+      els.occurrenceSummary.textContent = "Grouping all manifest files by name...";
       try {
-        const result = await sqliteRequest("groupNames", { query });
+        const result = await sqliteRequest("groupNames");
         if (!result.total) {
-          els.occurrenceSummary.textContent = "No matching file names found.";
+          els.occurrenceSummary.textContent = "No manifest files found.";
           return;
         }
         const frag = document.createDocumentFragment();
         for (const group of result.groups || []) {
           const tr = document.createElement("tr");
-          tr.innerHTML = "<td class=\"path-cell\"></td><td></td><td class=\"path-cell mono\"></td>";
+          tr.innerHTML = "<td class=\"path-cell\"></td><td></td><td></td>";
           tr.cells[0].textContent = group.name;
           tr.cells[1].textContent = group.count.toLocaleString();
-          tr.cells[2].textContent = group.locations.split("\n").map(path => path || "/").join("\n");
+          tr.cells[2].textContent = "View files";
           tr.tabIndex = 0;
           tr.setAttribute("role", "button");
           tr.title = "Show files named " + group.name;
@@ -1549,12 +1534,11 @@
           frag.appendChild(tr);
         }
         els.occurrenceRows.appendChild(frag);
-        els.occurrenceSummary.textContent = "Showing " + (result.groups || []).length.toLocaleString() + " of " + result.total.toLocaleString() +
-          " matching file names, grouped by basename. Occurrences count manifest paths with that exact file name.";
-      } finally {
-        els.occurrenceSearchBtn.disabled = !state.fsRoot;
-        els.occurrenceSearchBtn.classList.remove("loading");
-        els.occurrenceSearchBtn.textContent = "Find files";
+        els.occurrenceSummary.textContent = (result.groups || []).length.toLocaleString() + " of " + result.total.toLocaleString() +
+          " unique file names. Each occurrence is one manifest file path; sorted least to most.";
+      } catch (error) {
+        els.occurrenceSummary.textContent = "Could not load filename occurrences: " + error.message;
+        throw error;
       }
     }
 
@@ -1581,11 +1565,8 @@
     }
 
     function updateOccurrenceSearchAvailability() {
-      const ready = !!state.fsRoot;
-      els.occurrenceSearch.disabled = !ready;
-      els.occurrenceSearchBtn.disabled = !ready;
-      if (ready && els.occurrenceSummary.textContent === "Load the manifest and bundle index to search.") {
-        els.occurrenceSummary.textContent = "Ready. Search returns up to " + FILE_PAGE_SIZE + " matching files.";
+      if (state.fsRoot && els.occurrenceSummary.textContent === "Load the manifest to view filename occurrences.") {
+        els.occurrenceSummary.textContent = "Open this panel to load all filename counts.";
       }
     }
 
@@ -2125,16 +2106,13 @@
             const files = selectAll("SELECT * FROM files WHERE lower_path LIKE ? ESCAPE '\\\\' ORDER BY path LIMIT ? OFFSET ?", [like, limit, offset]);
             postMessage({ id: message.id, ok: true, rows: files, total: totalRow ? Number(totalRow.total || 0) : 0 });
           } else if (message.type === "groupNames") {
-            const like = "%" + String(message.query || "").toLowerCase().replace(/[\\%_]/g, "\\$&") + "%";
             const groups = [];
             db.exec({
-              sql: "SELECT name, COUNT(*) AS occurrence_count, group_concat(parent_path, char(10)) AS locations FROM files WHERE lower_path LIKE ? ESCAPE '\\' GROUP BY lower(name) ORDER BY occurrence_count ASC, lower(name) LIMIT 100",
-              bind: [like],
+              sql: "SELECT MIN(name) AS name, COUNT(*) AS occurrence_count FROM files GROUP BY lower(name) ORDER BY occurrence_count ASC, lower(name)",
               rowMode: "object",
-              callback: row => groups.push({ name: row.name, count: Number(row.occurrence_count || 0), locations: row.locations || "" }),
+              callback: row => groups.push({ name: row.name, count: Number(row.occurrence_count || 0) }),
             });
-            const totalRow = selectOne("SELECT COUNT(DISTINCT lower(name)) AS total FROM files WHERE lower_path LIKE ? ESCAPE '\\'", [like]);
-            postMessage({ id: message.id, ok: true, groups, total: totalRow ? Number(totalRow.total || 0) : 0 });
+            postMessage({ id: message.id, ok: true, groups, total: groups.length });
           } else if (message.type === "fileNameDetails") {
             const files = selectAll("SELECT * FROM files WHERE lower(name) = ? ORDER BY lower(path), path", [String(message.name || "").toLowerCase()]);
             postMessage({ id: message.id, ok: true, files });
@@ -3864,7 +3842,7 @@
     els.occurrencesBtn.addEventListener("click", () => {
       updateOccurrenceSearchAvailability();
       els.occurrencesModal.classList.add("visible");
-      els.occurrenceSearch.focus();
+      if (state.fsRoot) runTask("Loading filename occurrences", loadFileNameOccurrences);
     });
     els.closeOccurrencesBtn.addEventListener("click", () => els.occurrencesModal.classList.remove("visible"));
     els.occurrencesModal.addEventListener("click", event => {
@@ -3873,13 +3851,6 @@
     els.closeOccurrenceDetailBtn.addEventListener("click", () => els.occurrenceDetailModal.classList.remove("visible"));
     els.occurrenceDetailModal.addEventListener("click", event => {
       if (event.target === els.occurrenceDetailModal) els.occurrenceDetailModal.classList.remove("visible");
-    });
-    els.occurrenceSearchBtn.addEventListener("click", () => runTask("Finding index occurrences", searchIndexOccurrences));
-    els.occurrenceSearch.addEventListener("keydown", event => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        runTask("Finding index occurrences", searchIndexOccurrences);
-      }
     });
     els.githubBtn.addEventListener("click", () => window.open("https://github.com/BlueCartoonCat/bluecartooncat.github.io/tree/gh-pages/rads-web", "_blank", "noopener,noreferrer"));
     els.closeSettingsBtn.addEventListener("click", () => els.settingsModal.classList.remove("visible"));
