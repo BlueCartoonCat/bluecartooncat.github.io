@@ -884,7 +884,8 @@
       sqlitePersistent: false,
       occurrencePage: 0,
       occurrenceTotal: 0,
-      occurrenceSearchToken: 0,
+      occurrenceGroups: null,
+      occurrenceLoading: null,
     };
 
     for (const id of [
@@ -1535,49 +1536,71 @@
 
     async function loadFileNameOccurrences() {
       if (!state.fsRoot) throw new Error("manifest index is not loaded");
-      const token = ++state.occurrenceSearchToken;
-      els.occurrenceRows.textContent = "";
-      els.occurrenceSummary.textContent = "Loading filename groups...";
+      if (state.occurrenceGroups) {
+        renderFileNameOccurrences();
+        return;
+      }
+      if (state.occurrenceLoading) {
+        await state.occurrenceLoading;
+        renderFileNameOccurrences();
+        return;
+      }
+      els.occurrenceSummary.textContent = "Loading filename groups once...";
       try {
-        const result = await sqliteRequest("groupNames", {
-          query: els.occurrenceSearch.value.trim(),
-          onceOnly: els.occurrenceOnceOnly.checked,
-          page: state.occurrencePage,
-          pageSize: OCCURRENCE_PAGE_SIZE,
+        state.occurrenceLoading = sqliteRequest("groupNames").then(result => {
+          state.occurrenceGroups = result.groups || [];
         });
-        if (token !== state.occurrenceSearchToken) return;
-        state.occurrenceTotal = result.total;
-        const frag = document.createDocumentFragment();
-        for (const group of result.groups || []) {
-          const row = document.createElement("tr");
-          row.innerHTML = "<td class=\"path-cell\"></td><td></td><td></td>";
-          row.cells[0].textContent = group.name;
-          row.cells[1].textContent = group.count.toLocaleString();
-          row.cells[2].textContent = "View files";
-          row.tabIndex = 0;
-          row.setAttribute("role", "button");
-          row.addEventListener("click", () => openOccurrenceDetails(group.name));
-          row.addEventListener("keydown", event => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              openOccurrenceDetails(group.name);
-            }
-          });
-          frag.appendChild(row);
-        }
-        els.occurrenceRows.appendChild(frag);
-        const pages = Math.max(1, Math.ceil(result.total / OCCURRENCE_PAGE_SIZE));
-        const start = result.total ? state.occurrencePage * OCCURRENCE_PAGE_SIZE + 1 : 0;
-        const end = Math.min((state.occurrencePage + 1) * OCCURRENCE_PAGE_SIZE, result.total);
-        els.occurrenceSummary.textContent = "Showing " + start.toLocaleString() + "–" + end.toLocaleString() + " of " + result.total.toLocaleString() +
-          " file names · page " + (state.occurrencePage + 1).toLocaleString() + " / " + pages.toLocaleString() + " · sorted least to most.";
-        els.occurrencePrev.disabled = state.occurrencePage === 0;
-        els.occurrenceNext.disabled = end >= result.total;
+        await state.occurrenceLoading;
+        renderFileNameOccurrences();
       } catch (error) {
-        if (token !== state.occurrenceSearchToken) return;
         els.occurrenceSummary.textContent = "Could not load filename occurrences: " + error.message;
         throw error;
+      } finally {
+        state.occurrenceLoading = null;
       }
+    }
+
+    function filteredFileNameOccurrences() {
+      if (!state.occurrenceGroups) return [];
+      const query = els.occurrenceSearch.value.trim().toLowerCase();
+      const onceOnly = els.occurrenceOnceOnly.checked;
+      return state.occurrenceGroups.filter(group =>
+        (!onceOnly || group.count === 1) && (!query || group.name.toLowerCase().includes(query))
+      );
+    }
+
+    function renderFileNameOccurrences() {
+      const filtered = filteredFileNameOccurrences();
+      state.occurrenceTotal = filtered.length;
+      const pages = Math.max(1, Math.ceil(filtered.length / OCCURRENCE_PAGE_SIZE));
+      state.occurrencePage = Math.min(state.occurrencePage, pages - 1);
+      const startIndex = state.occurrencePage * OCCURRENCE_PAGE_SIZE;
+      const page = filtered.slice(startIndex, startIndex + OCCURRENCE_PAGE_SIZE);
+      const frag = document.createDocumentFragment();
+      for (const group of page) {
+        const row = document.createElement("tr");
+        row.innerHTML = "<td class=\"path-cell\"></td><td></td><td></td>";
+        row.cells[0].textContent = group.name;
+        row.cells[1].textContent = group.count.toLocaleString();
+        row.cells[2].textContent = "View files";
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        row.addEventListener("click", () => openOccurrenceDetails(group.name));
+        row.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openOccurrenceDetails(group.name);
+          }
+        });
+        frag.appendChild(row);
+      }
+      els.occurrenceRows.replaceChildren(frag);
+      const first = filtered.length ? startIndex + 1 : 0;
+      const last = Math.min(startIndex + page.length, filtered.length);
+      els.occurrenceSummary.textContent = "Showing " + first.toLocaleString() + "–" + last.toLocaleString() + " of " + filtered.length.toLocaleString() +
+        " file names · page " + (state.occurrencePage + 1).toLocaleString() + " / " + pages.toLocaleString() + " · sorted least to most.";
+      els.occurrencePrev.disabled = state.occurrencePage === 0;
+      els.occurrenceNext.disabled = startIndex + page.length >= filtered.length;
     }
 
     async function openOccurrenceDetails(name) {
@@ -1605,16 +1628,14 @@
       els.occurrenceExportBtn.disabled = true;
       els.occurrenceExportBtn.classList.add("loading");
       try {
-        const result = await sqliteRequest("groupNamesExport", {
-          query: els.occurrenceSearch.value.trim(),
-          onceOnly: els.occurrenceOnceOnly.checked,
-        });
+        if (!state.occurrenceGroups) await loadFileNameOccurrences();
+        const groups = filteredFileNameOccurrences();
         const csvCell = value => '"' + String(value).replace(/"/g, '""') + '"';
-        const lines = ["File name,Occurrences"].concat((result.groups || []).map(group =>
+        const lines = ["File name,Occurrences"].concat(groups.map(group =>
           csvCell(group.name) + "," + group.count
         ));
         downloadBlobParts(["\uFEFF" + lines.join("\r\n")], "filename-occurrences.csv");
-        log("Exported " + (result.groups || []).length.toLocaleString() + " filename groups to CSV");
+        log("Exported " + groups.length.toLocaleString() + " filename groups to CSV");
       } finally {
         els.occurrenceExportBtn.disabled = false;
         els.occurrenceExportBtn.classList.remove("loading");
@@ -2109,27 +2130,9 @@
             const files = selectAll("SELECT * FROM files WHERE lower_path LIKE ? ESCAPE '\\\\' ORDER BY path LIMIT ? OFFSET ?", [like, limit, offset]);
             postMessage({ id: message.id, ok: true, rows: files, total: totalRow ? Number(totalRow.total || 0) : 0 });
           } else if (message.type === "groupNames") {
-            const query = String(message.query || "").toLowerCase();
-            const like = "%" + query + "%";
-            const onceOnly = message.onceOnly ? 1 : 0;
-            const groupedSql = "WITH grouped AS (SELECT MIN(name) AS name, COUNT(*) AS occurrence_count FROM files GROUP BY lower(name)) ";
             const groups = [];
             db.exec({
-              sql: groupedSql + "SELECT name, occurrence_count FROM grouped WHERE (? = '' OR lower(name) LIKE ?) AND (? = 0 OR occurrence_count = 1) ORDER BY occurrence_count ASC, lower(name) LIMIT ? OFFSET ?",
-              bind: [query, like, onceOnly, Math.max(1, Number(message.pageSize || 100)), Math.max(0, Number(message.page || 0)) * Math.max(1, Number(message.pageSize || 100))],
-              rowMode: "object",
-              callback: row => groups.push({ name: row.name, count: Number(row.occurrence_count || 0) }),
-            });
-            const totalRow = selectOne(groupedSql + "SELECT COUNT(*) AS total FROM grouped WHERE (? = '' OR lower(name) LIKE ?) AND (? = 0 OR occurrence_count = 1)", [query, like, onceOnly]);
-            postMessage({ id: message.id, ok: true, groups, total: totalRow ? Number(totalRow.total || 0) : 0 });
-          } else if (message.type === "groupNamesExport") {
-            const query = String(message.query || "").toLowerCase();
-            const like = "%" + query + "%";
-            const onceOnly = message.onceOnly ? 1 : 0;
-            const groups = [];
-            db.exec({
-              sql: "WITH grouped AS (SELECT MIN(name) AS name, COUNT(*) AS occurrence_count FROM files GROUP BY lower(name)) SELECT name, occurrence_count FROM grouped WHERE (? = '' OR lower(name) LIKE ?) AND (? = 0 OR occurrence_count = 1) ORDER BY occurrence_count ASC, lower(name)",
-              bind: [query, like, onceOnly],
+              sql: "SELECT MIN(name) AS name, COUNT(*) AS occurrence_count FROM files GROUP BY lower(name) ORDER BY occurrence_count ASC, lower(name)",
               rowMode: "object",
               callback: row => groups.push({ name: row.name, count: Number(row.occurrence_count || 0) }),
             });
@@ -3867,22 +3870,22 @@
       clearTimeout(occurrenceSearchTimer);
       occurrenceSearchTimer = setTimeout(() => {
         state.occurrencePage = 0;
-        runTask("Filtering filename occurrences", loadFileNameOccurrences);
+        renderFileNameOccurrences();
       }, 250);
     });
     els.occurrenceOnceOnly.addEventListener("change", () => {
       state.occurrencePage = 0;
-      runTask("Filtering filename occurrences", loadFileNameOccurrences);
+      renderFileNameOccurrences();
     });
     els.occurrenceExportBtn.addEventListener("click", () => runTask("Exporting filename occurrences", exportFileNameOccurrencesCsv));
     els.occurrencePrev.addEventListener("click", () => {
       state.occurrencePage = Math.max(0, state.occurrencePage - 1);
-      runTask("Loading filename occurrences", loadFileNameOccurrences);
+      renderFileNameOccurrences();
     });
     els.occurrenceNext.addEventListener("click", () => {
       if ((state.occurrencePage + 1) * OCCURRENCE_PAGE_SIZE >= state.occurrenceTotal) return;
       state.occurrencePage += 1;
-      runTask("Loading filename occurrences", loadFileNameOccurrences);
+      renderFileNameOccurrences();
     });
     els.closeOccurrencesBtn.addEventListener("click", () => els.occurrencesModal.classList.remove("visible"));
     els.occurrencesModal.addEventListener("click", event => {
