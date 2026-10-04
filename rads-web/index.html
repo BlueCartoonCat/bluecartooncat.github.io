@@ -1582,16 +1582,17 @@
         row.innerHTML = "<td class=\"path-cell\"></td><td></td><td></td>";
         row.cells[0].textContent = group.name;
         row.cells[1].textContent = group.count.toLocaleString();
-        row.cells[2].textContent = "View files";
-        row.tabIndex = 0;
-        row.setAttribute("role", "button");
-        row.addEventListener("click", () => openOccurrenceDetails(group.name));
-        row.addEventListener("keydown", event => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openOccurrenceDetails(group.name);
-          }
-        });
+        const action = document.createElement("button");
+        action.type = "button";
+        if (group.count === 1) {
+          action.textContent = "Download";
+          action.title = "Download " + group.name;
+          action.addEventListener("click", () => runTask("Downloading " + group.name, () => downloadManifestFileByPath(group.singlePath)));
+        } else {
+          action.textContent = "View files";
+          action.addEventListener("click", () => openOccurrenceDetails(group.name));
+        }
+        row.cells[2].appendChild(action);
         frag.appendChild(row);
       }
       els.occurrenceRows.replaceChildren(frag);
@@ -1621,6 +1622,19 @@
         els.occurrenceDetailSummary.textContent = (result.files || []).length.toLocaleString() + " file path" + ((result.files || []).length === 1 ? "" : "s") + " with this name.";
       } catch (error) {
         els.occurrenceDetailSummary.textContent = "Could not load file paths: " + error.message;
+      }
+    }
+
+    async function downloadManifestFileByPath(path) {
+      const file = await getManifestFile(path);
+      if (!file) throw new Error("manifest file is no longer available: " + path);
+      const previousSelection = state.selectedKeys;
+      state.selectedKeys = new Set(["file:" + path]);
+      try {
+        await downloadSelected();
+      } finally {
+        state.selectedKeys = previousSelection;
+        renderFilesystem();
       }
     }
 
@@ -2132,9 +2146,9 @@
           } else if (message.type === "groupNames") {
             const groups = [];
             db.exec({
-              sql: "SELECT MIN(name) AS name, COUNT(*) AS occurrence_count FROM files GROUP BY lower(name) ORDER BY occurrence_count ASC, lower(name)",
+              sql: "SELECT MIN(name) AS name, COUNT(*) AS occurrence_count, MIN(path) AS single_path FROM files GROUP BY lower(name) ORDER BY occurrence_count ASC, lower(name)",
               rowMode: "object",
-              callback: row => groups.push({ name: row.name, count: Number(row.occurrence_count || 0) }),
+              callback: row => groups.push({ name: row.name, count: Number(row.occurrence_count || 0), singlePath: row.single_path }),
             });
             postMessage({ id: message.id, ok: true, groups });
           } else if (message.type === "fileNameDetails") {
